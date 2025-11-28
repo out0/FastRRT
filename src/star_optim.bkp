@@ -1,0 +1,88 @@
+#include "../include/fastrrt.h"
+#include "../include/cuda_params.h"
+#include "../include/math_utils.h"
+#include "../include/waypoint.h"
+#include <bits/algorithmfwd.h>
+
+extern __device__ __host__ long computePos(int width, int x, int z);
+extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
+extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
+extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ float computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
+extern __device__ __host__ int getTypeCuda(int3 *graph, long pos);
+extern __device__ __host__ double compute_euclidean_2d_dist(int2 &start, int2 &end);
+
+void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s)
+{
+}
+
+extern __device__ __host__ bool checkKinematicPath(
+    int3 *graph,
+    float3 *graphData,
+    float3 *frame,
+    double *physicalParams,
+    int *params,
+    float *classCost,
+    int2 center,
+    int2 start,
+    int2 end,
+    float velocity_m_s,
+    double &final_heading,
+    double &path_cost);
+
+void CudaGraph::optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s)
+{
+    int max_steering = static_cast<int>(this->_physicalParams[PHYSICAL_PARAMS_MAX_STEERING_DEG]);
+
+    long nodePos = computePos(width(), x, z);
+
+    int2 curr = {x, z};
+    angle curr_heading = getHeading(x, z);
+    angle steering = angle::deg((rand() % (2 * max_steering) - max_steering));
+
+    int2 newNode = derivateNode(og, curr_heading, steering, radius, velocity_m_s, x, z);
+    if (newNode.x == -1 || newNode.y == -1)
+        return;
+
+    acceptDerivatedNode(curr, newNode);
+
+    std::vector<int2> nodes = listInRange(x, z, radius);
+
+    for (int2 n : nodes)
+    {
+        // if (compute_euclidean_2d_dist(curr, n) > radius)
+        //     continue;
+
+        double final_heading = 0;
+        double path_cost = 0;
+
+        if (!checkKinematicPath(
+                _frame->getCudaPtr(),
+                _frameData->getCudaPtr(),
+                og,
+                _physicalParams,
+                _searchSpaceParams,
+                _classCosts,
+                _gridCenter,
+                curr,
+                n,
+                velocity_m_s,
+                final_heading,
+                path_cost))
+            continue;
+
+        float newCost = path_cost + getCost(newNode.x, newNode.y);
+        if (getCost(n.x, n.y) < newCost)
+        {
+            set(_frame->getCudaPtr(),
+                _frameData->getCudaPtr(),
+                computePos(width(), n.x, n.y),
+                final_heading,
+                newNode.x, newNode.y,
+                newCost,
+                GRAPH_TYPE_NODE,
+                true);
+        }
+    }
+}

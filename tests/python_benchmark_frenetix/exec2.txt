@@ -1,0 +1,74 @@
+Graph read from coarse_path_state.dat
+[path optimize] size = 7
+checking 416, 686 --> 453, 681 - current cost: 45.000000, new cost: 37.000000
+checking 416, 686 --> 482, 684 - current cost: 76.000000, new cost: 66.000000
+checking 416, 686 --> 495, 675 - current cost: 96.000000, new cost: 79.000000
+checking 416, 686 --> 508, 658 - current cost: 211.000000, new cost: 91.000000
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+best gain for node 416, 686 connected to 441, 679 with cost 31.000000 is to re-connected to 508, 658 with new cost 91.000000 (gain 120.000000)
+checking 441, 679 --> 482, 684 - current cost: 76.000000, new cost: 72.000000
+checking 441, 679 --> 495, 675 - current cost: 96.000000, new cost: 84.000000
+checking 441, 679 --> 508, 658 - current cost: 211.000000, new cost: 99.000000
+checking 441, 679 --> 296, 15 - current cost: 95.681519, new cost: 680.000000
+best gain for node 441, 679 connected to 453, 681 with cost 45.000000 is to re-connected to 508, 658 with new cost 99.000000 (gain 112.000000)
+checking 453, 681 --> 495, 675 - current cost: 96.000000, new cost: 85.000000
+checking 453, 681 --> 508, 658 - current cost: 211.000000, new cost: 103.000000
+checking 453, 681 --> 296, 15 - current cost: 95.681519, new cost: 661.000000
+best gain for node 453, 681 connected to 482, 684 with cost 76.000000 is to re-connected to 508, 658 with new cost 103.000000 (gain 108.000000)
+checking 482, 684 --> 508, 658 - current cost: 211.000000, new cost: 113.000000
+checking 482, 684 --> 296, 15 - current cost: 95.681519, new cost: 729.000000
+best gain for node 482, 684 connected to 495, 675 with cost 96.000000 is to re-connected to 508, 658 with new cost 113.000000 (gain 98.000000)
+checking 495, 675 --> 296, 15 - current cost: 95.681519, new cost: 760.000000
+node 495, 675 must remain connected to 508, 658 with cost 211.000000
+best gain: is to change 416, 686 connected to 441, 679 with cost 31.000000, reconnecting to 508, 658 with new cost 91.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost:0.0, 1.0, 4.0, 3.0, 2.0
+Path: 
+(416, 686) --> (441, 679) --> (453, 681) --> (482, 684) --> (495, 675) --> (508, 658) --> (296, 15)
+
+optimze path with 751 waypoints in 73.02 ms
+ 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)
+[path optimize] size = 3
+checking 416, 686 --> 296, 15 - current cost: 95.681519, new cost: 641.000000
+node 416, 686 must remain connected to 508, 658 with cost 91.000000
+best gain: is to change 0, 0 connected to 416, 686 with cost 0.000000, reconnecting to 416, 686 with new cost 0.000000
+(416, 686) --> (508, 658) --> (296, 15)

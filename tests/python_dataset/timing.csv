@@ -1,0 +1,7 @@
+name,scenario,exec_time_ms_coarse,exec_time_ms_optim,total
+rrt_star,gpu_map_cost_5,241.83,5.48,247.31
+rrt_star,gpu_map_cost_8,248.27,36.73,284.99
+rrt_star,gpu_map_cost_18,208.05,34.87,242.92
+rrt_star,gpu_map_cost_25,259.15,35.25,294.40
+rrt_star,gpu_map_cost_31,585.43,35.56,621.00
+rrt_star,gpu_map_cost_39,625.49,35.26,660.75

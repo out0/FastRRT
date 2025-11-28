@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/fastrrtTargets.cmake")
+
+# Optionally set variables for consumers
+set(DRIVELESS_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/driveless")
+set(DRIVELESS_LIBRARIES fastrrt)

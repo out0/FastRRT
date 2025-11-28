@@ -1,0 +1,94 @@
+0.0, 1.0, 4.0, 3.0, 2.0
+found path with 781 waypoints in 143.84 ms
+[Direct connection] 511, 662 --> 505, 649 --> 296, 15 with cost 814.000000
+Graph dumped to coarse_path_state.dat
+interpolating 416, 686, 89.960251 --> 433, 675, 35.184825
+interpolating 433, 675, 35.184825 --> 437, 672, 47.671449
+interpolating 437, 672, 47.671449 --> 456, 669, 97.679806
+interpolating 456, 669, 97.679806 --> 488, 671, 90.265909
+interpolating 488, 671, 90.265909 --> 493, 673, 117.722354
+interpolating 493, 673, 117.722354 --> 495, 678, 153.813128
+interpolating 495, 678, 153.813128 --> 499, 683, 142.235220
+interpolating 499, 683, 142.235220 --> 514, 679, 35.905772
+interpolating 514, 679, 35.905772 --> 511, 662, -32.864142
+interpolating 511, 662, -32.864142 --> 505, 649, -18.244960
+interpolating 505, 649, -18.244960 --> 296, 15, -14.000000
+path pos 0, cost 0.000000
+path pos 1, cost 28.000000
+path pos 2, cost 34.000000
+path pos 3, cost 57.000000
+path pos 4, cost 91.000000
+path pos 5, cost 97.000000
+path pos 6, cost 104.000000
+path pos 7, cost 113.000000
+path pos 8, cost 135.000000
+path pos 9, cost 158.000000
+path pos 10, cost 814.000000
+path pos 11, cost -0.318435
+[path optimize] size = 12
+[optimizePathLoop] 0
+checking 416, 686 --> 433, 675
+checking 416, 686 --> 437, 672
+checking 416, 686 --> 456, 669
+checking 416, 686 --> 488, 671
+checking 416, 686 --> 493, 673
+checking 416, 686 --> 495, 678
+checking 416, 686 --> 499, 683
+checking 416, 686 --> 514, 679
+checking 416, 686 --> 511, 662
+checking 416, 686 --> 505, 649
+[optimizePathLoop] 1
+checking 433, 675 --> 456, 669
+checking 433, 675 --> 488, 671
+checking 433, 675 --> 493, 673
+checking 433, 675 --> 495, 678
+checking 433, 675 --> 499, 683
+checking 433, 675 --> 514, 679
+checking 433, 675 --> 511, 662
+checking 433, 675 --> 505, 649
+checking 433, 675 --> 296, 15
+[optimizePathLoop] 2
+checking 437, 672 --> 493, 673
+checking 437, 672 --> 495, 678
+checking 437, 672 --> 499, 683
+checking 437, 672 --> 514, 679
+checking 437, 672 --> 511, 662
+checking 437, 672 --> 505, 649
+checking 437, 672 --> 296, 15
+checking 437, 672 --> 0, 0
+[optimizePathLoop] 3
+checking 456, 669 --> 499, 683
+checking 456, 669 --> 514, 679
+checking 456, 669 --> 511, 662
+checking 456, 669 --> 505, 649
+checking 456, 669 --> 296, 15
+checking 456, 669 --> 0, 0
+checking 456, 669 --> 0, 0
+[optimizePathLoop] 4
+checking 488, 671 --> 511, 662
+checking 488, 671 --> 505, 649
+checking 488, 671 --> 296, 15
+checking 488, 671 --> 0, 0
+checking 488, 671 --> 0, 0
+checking 488, 671 --> 0, 0
+[optimizePathLoop] 5
+checking 493, 673 --> 296, 15
+checking 493, 673 --> 0, 0
+checking 493, 673 --> 0, 0
+checking 493, 673 --> 0, 0
+checking 493, 673 --> 0, 0
+[optimizePathLoop] 6
+checking 495, 678 --> 0, 0
+checking 495, 678 --> 0, 0
+checking 495, 678 --> 0, 0
+checking 495, 678 --> 0, 0
+[optimizePathLoop] 7
+checking 499, 683 --> 0, 0
+checking 499, 683 --> 0, 0
+checking 499, 683 --> 0, 0
+[optimizePathLoop] 8
+checking 514, 679 --> 0, 0
+checking 514, 679 --> 0, 0
+[optimizePathLoop] 9
+checking 511, 662 --> 0, 0
+[optimizePathLoop] 10

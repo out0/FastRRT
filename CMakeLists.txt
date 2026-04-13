@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 project(fastrrt LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libfastrrt")
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_ARCHITECTURES all-major)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #set(CMAKE_CUDA_ARCHITECTURES all-major)

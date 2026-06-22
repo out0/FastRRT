@@ -254,7 +254,7 @@ CudaGraph::CudaGraph(int width, int height)
     _graphGoalDirectConnection = std::make_unique<CudaFrame<float3>>(width, height);
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;
-    _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
+    _searchSpaceParams = std::make_unique<CudaPtr<int>>(20);
     _searchSpaceParams->get()[FRAME_PARAM_WIDTH] = width;
     _searchSpaceParams->get()[FRAME_PARAM_HEIGHT] = height;
     _searchSpaceParams->get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);

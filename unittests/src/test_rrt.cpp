@@ -147,7 +147,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
 
 TEST(TestRRT, TestSearch)
 {
-    std::pair<cv::Mat, float *> res = readImg("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/unittests/bev_1.png");
+    std::pair<cv::Mat, float *> res = readImg("bev_1.png");
     cv::Mat img = res.first;
     float *ptr = res.second;
 

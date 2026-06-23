@@ -251,8 +251,9 @@ TEST(TestRRT, TestSearch)
     ASSERT_TRUE(rrt.goalReached());
 
     path = rrt.getPlannedPath();
+    auto path2 = rrt.interpolatePlannedPath(path);
 
-    exportPathTo(frame.getCudaPtr(), img.cols, img.rows, path, "output2.png");
+    exportPathTo(frame.getCudaPtr(), img.cols, img.rows, path2, "output2.png");
 
     delete[] ptr;
 }

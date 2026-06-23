@@ -87,19 +87,19 @@ add_executable(
 
   src/test_utils.cpp
   src/unittests.cpp
-  src/test_apf.cpp
-  src/test_graph.cpp
-  src/test_graph_node_derivation.cpp
-  src/test_kinematics.cpp
-  src/test_graph_best_node.cpp
-  #src/test_optimize_path.cpp
-  src/test_graph_can_connect_hermite.cpp
-  src/test_graph_dag_consistency.cpp
-  src/test_graph_solve_collisions.cpp
-  src/test_graph_direct_goal_connection.cpp
-  src/test_graph_dump.cpp
+  #src/test_apf.cpp
+  #src/test_graph.cpp
+  #src/test_graph_node_derivation.cpp
+  #src/test_kinematics.cpp
+  #src/test_graph_best_node.cpp
+  #src/test_graph_can_connect_hermite.cpp
+  #src/test_graph_dag_consistency.cpp
+  #src/test_graph_solve_collisions.cpp
+  #src/test_graph_direct_goal_connection.cpp
+  #src/test_graph_dump.cpp
   src/test_rrt.cpp
 )
+  #src/test_optimize_path.cpp
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 

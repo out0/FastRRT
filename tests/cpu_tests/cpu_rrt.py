@@ -5,10 +5,7 @@ from scipy.interpolate import CubicSpline
 import math
 from node_grid import *
 import sys
-sys.path.append("../../")
-sys.path.append("../../../")
-sys.path.append("../../../../")
-from model.waypoint import Waypoint
+from pydriveless import Waypoint
 
 MIN_DIST_NONE = 0
 MIN_DIST_CPU = 1

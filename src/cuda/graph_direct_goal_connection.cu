@@ -131,12 +131,14 @@ __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3
         //     printf ("last_x = %d, last_z = %d\n", last_x, last_z);
         // }
 
-        if (isSafeZoneChecked && check_bit(traversability, 0x100))
+        if (isSafeZoneChecked)
         {
+            const int traversability = TO_INT(frame[computePos(width, cx, cz)].z);
+            if (check_bit(traversability, 0x100))
+                continue;
             // if (x == 128 && z == 128)
             //      printf ("SAFEZONE CHECKED last_x = %d, last_z = %d\n", last_x, last_z);
             // }
-            continue;
         }
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, last_heading))

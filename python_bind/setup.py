@@ -12,7 +12,7 @@ setup(
     include_package_data=True, 
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/out0/selfdrive/libfastrrt",
+    url="https://github.com/out0/FastRRT",
     author="Cristiano Oliveira",
     author_email="cristianoo@gmail.com",
     license="MIT",

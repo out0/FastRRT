@@ -13,7 +13,12 @@ __device__ __host__ bool check_bit(int traversability, int bit)
     return (traversability & bit) > 0;
 }
 
-__device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, float local_heading, int goal_x, int goal_z, float goal_heading, bool isSafeZoneChecked, bool isDistanceToGoalProcessed)
+__device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3 *frame,
+                                                       float *classCosts, int *searchSpaceParams, float max_curvature,
+                                                       int x, int z, float local_heading, int goal_x, int goal_z, float goal_heading,
+                                                       bool isSafeZoneChecked, bool isDistanceToGoalProcessed,
+                                                       float distance_to_goal_tolerance,
+                                                       float max_heading_error)
 {
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
@@ -24,20 +29,17 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
     //     printf ("checkDirectConnectionToGoal: minDistX, minDistZ = %d, %d\n", minDistX, minDistZ);
 
     const long pos = computePos(width, x, z);
+    const float max_dist_to_goal_squared = distance_to_goal_tolerance;
 
-    float distance = 0.0;
-    if (isDistanceToGoalProcessed)
-    {
-        distance = frame[pos].y;
-    }
-    else
+    float distance = frame[pos].y;
+    if (!isDistanceToGoalProcessed)
     {
         const int dx = goal_x - x;
         const int dz = goal_z - z;
         distance = sqrtf(dx * dx + dz * dz);
     }
 
-    int numPoints = TO_INT(distance);
+    int numPoints = TO_INT(1.5 * distance);
 
     float a1 = local_heading - HALF_PI;
     float a2 = goal_heading - HALF_PI;
@@ -48,6 +50,7 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
     int last_x = -1;
     int last_z = -1;
+    float last_heading = 0;
 
     const float parentCost = getCostCuda(graphData, pos);
     float nodeCost = parentCost;
@@ -93,7 +96,7 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
         double ddx = t00 * x + t10 * tan1.x + t01 * goal_x + t11 * tan2.x;
         double ddz = t00 * z + t10 * tan1.y + t01 * goal_z + t11 * tan2.y;
 
-        float heading = atan2f(ddz, ddx) + HALF_PI;
+        last_heading = atan2f(ddz, ddx) + HALF_PI;
 
         double d00 = 12 * t - 6;
         double d10 = 6 * t - 4;
@@ -113,7 +116,8 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
                 //      printf("[direct goal] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
                 //          x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
                 // #endif
-                return -1;
+                return {-1, -1, 0, 0.0};
+                //return;
             }
         }
 
@@ -127,14 +131,15 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
         //     printf ("last_x = %d, last_z = %d\n", last_x, last_z);
         // }
 
-        if (isSafeZoneChecked && check_bit(traversability, 0x100)) {
+        if (isSafeZoneChecked && check_bit(traversability, 0x100))
+        {
             // if (x == 128 && z == 128)
             //      printf ("SAFEZONE CHECKED last_x = %d, last_z = %d\n", last_x, last_z);
             // }
             continue;
         }
 
-        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, last_heading))
         {
             //  #ifndef __CUDA_ARCH__
             //  printf("[direct goal] %d,%d,%f --> %d,%d,%f not feasible\n",
@@ -142,120 +147,27 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
             // #endif
             // if (x == 128 && z == 128)
             //     printf("[CUDA] %d,%d,%f --> %d,%d,%f collision\n", x, z, local_heading, goal_x, goal_z, goal_heading);
-            return -1;
+            return {-1, -1, 0, 0.0};
+            
         }
     }
 
-    if (numPoints <= 0) {
+    if (numPoints <= 0)
+    {
         // if (x == 128 && z == 128)
         //      printf("[CUDA] %d,%d,%f --> %d,%d,%f numPoints <= 0\n", x, z, local_heading, goal_x, goal_z, goal_heading);
-        return -1;
+        return {-1, -1, 0, 0.0};
     }
 
-    if (last_x != goal_x && last_z != goal_z) {
-        // #ifndef __CUDA_ARCH__
-        //  printf("[direct goal] %d,%d,%f --> %d,%d,%f goal not reached\n",
-        //                  x, z, local_heading, goal_x, goal_z, goal_heading);
+    if (abs(last_heading - goal_heading) > max_heading_error)
+        return {-1, -1, 0, 0.0};
 
-        // #endif
-        return -1;
-    }
+    float dx = goal_x - last_x;
+    float dz = goal_z - last_z;
+    if ((dx * dx + dz * dz) > max_dist_to_goal_squared)
+        return {-1, -1, 0, 0.0};
 
-    // if (x == 128 && z == 128)
-    //     printf("[CUDA] %d,%d connects to %d,%d,, goal %d, %d\n", x, z , last_x, last_z, goal_x, goal_z);
-    return nodeCost;
-}
-
-__global__ static void __CUDA_direct_connection(int4 *graph, float4 *graphData, float3 *frame, float3 *directConnectData, float *classCosts, int *searchSpaceParams,
-                                                float max_curvature, int goal_x, int goal_z, float goal_heading, bool isSafeZoneChecked, bool isDistanceToGoalProcessed)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
-    const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
-
-    if (pos >= width * height)
-        return;
-
-    directConnectData[pos].x = 0;
-
-    int z = pos / width;
-    int x = pos - z * width;
-
-    float local_heading = computeHeading(x, z, goal_x, goal_z);
-
-    float cost = checkDirectConnectionToGoal(graphData, frame, classCosts, searchSpaceParams, max_curvature, x, z, local_heading, goal_x, goal_z, goal_heading, isSafeZoneChecked, isDistanceToGoalProcessed);
-
-    if (cost < 0)
-        return;
-
-    directConnectData[pos].x = 1.0;
-    directConnectData[pos].y = local_heading;
-    directConnectData[pos].z = cost;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
-    // temp
-    //printf ("%d, %d connects directly to goal %d, %d with heading %f deg\n", x, z, goal_x, goal_z, 180 * local_heading / PI);
-}
-
-void CudaGraph::processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature)
-{
-    int size = _graph->width() * _graph->height();
-
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
-    if (max_curvature < 0)
-        max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
-
-    //printf ("minx, minz = %d, %d\n",_searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_X], _searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_Z]);
-
-    __CUDA_direct_connection<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
-        frame->getCudaPtr(),
-        _graphGoalDirectConnection->getCudaPtr(),
-        frame->getCudaClassCostsPtr(),
-        frame->getCudaFrameParamsPtr(),
-        max_curvature,
-        goal_x,
-        goal_z,
-        goal_heading.rad(),
-        false, false);
-        //frame->isSafeZoneChecked(),
-        //frame->isDistanceToGoalProcessed());
-
-    CUDA(cudaDeviceSynchronize());
-}
-
-__device__ __host__ bool is_directly_connected_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
-    long pos = computePos(width, x, z);
-    return goalDirectConnectionData[pos].x > 0;
-}
-
-bool CudaGraph::isDirectlyConnectedToGoal(int x, int z)
-{
-    return is_directly_connected_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
-}
-
-__device__ __host__ float get_cost_direct_connection_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
-    long pos = computePos(width, x, z);
-    return goalDirectConnectionData[pos].z;
-}
-
-float CudaGraph::directConnectionToGoalCost(int x, int z)
-{
-    if (!is_directly_connected_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z))
-        return -1;
     
-    return get_cost_direct_connection_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
-}
 
-__device__ __host__ float get_heading_direct_connection_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
-    long pos = computePos(width, x, z);
-    return goalDirectConnectionData[pos].y;
-}
-
-angle CudaGraph::directConnectionToGoalHeading(int x, int z)
-{
-    float h = get_heading_direct_connection_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
-    return angle::rad(h);
+    return {TO_FLOAT(last_x), TO_FLOAT(last_z), last_heading, nodeCost};
 }

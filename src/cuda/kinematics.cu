@@ -122,7 +122,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
 #define MIN_PATH_SIZE 1
 __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData,
                                                     double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts,
-                                                    float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+                                                    float3 *ogCoordinateStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -141,7 +141,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
 
-    const double2 startPose = convert_waypoint_to_map_pose(ogStart, start);
+    const double2 startPose = convert_waypoint_to_map_pose(ogCoordinateStart, start);
     // printf ("[check_kinematic_new_path] ogStart: %f, %f, %f\n", ogStart->x, ogStart->y, ogStart->z);
     // printf ("[check_kinematic_new_path] startPose: waypoint (%d, %d) -> map (%f, %f)\n", start.x, start.y, startPose.x, startPose.y);
 
@@ -190,7 +190,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
         y += ds * sinf(heading + beta);
         heading += heading_increment_factor;
 
-        lastp = convert_map_pose_to_waypoint(ogStart, {x, y});
+        lastp = convert_map_pose_to_waypoint(ogCoordinateStart, {x, y});
         // printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
 
         if (lastp.x == last_x && lastp.y == last_z)

@@ -63,7 +63,6 @@ private:
     cptr<float4> _bestNodeDirectConnection;
     cptr<long long> _bestNodeDirectConnectionCost;
 
-
     void __initializeRandomGenerator();
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
@@ -81,7 +80,6 @@ private:
 
     std::tuple<int, float> __findFirstDirectConnectionToPos(float3 *og, std::vector<float4> res, int pos, bool isSafeZoneChecked);
     std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
-    
 
 public:
     CudaGraph(int width, int height);
@@ -103,6 +101,9 @@ public:
     {
         return _searchSpaceParams->get();
     }
+
+    void setPreProcessCollisionEnable(bool vectorCheck);
+    void setPreProcessDistanceEnable();
 
     void setClassCosts(float *costs, int count);
     void setClassCosts(std::vector<float> costs);
@@ -174,15 +175,19 @@ public:
     /// @param z
     /// @param heading
     /// @return final node of the path
-    int2 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
+    float4 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
 
     /// @brief Derivates all nodes in graph with a random steering angle and pathSize, for the specified maxSteeringAngle, maxPathSize, and velocity_m_s.
     /// @param maxSteeringAngle
     /// @param maxPathSize
     /// @param velocity_m_s
-    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading);
+    void expandTree(float3 *og, float maxPathSize, float velocity_m_s,
+                    bool controlExpansion, bool forceExpansion, int2 goal, angle goal_heading,
+                    float dist_to_goal_tolerance, angle heading_error_tolerance);
 
-    void smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading);
+    void smartExpansion(float3 *og, float maxPathSize, float velocity_m_s,
+                        bool controlExpansion, bool forceExpansion, int2 goal,
+                        angle goal_heading, float dist_to_goal_tolerance, angle heading_error_tolerance);
 
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start
@@ -220,7 +225,6 @@ public:
     /// @return
     bool checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError);
 
-
     void dumpGraph(const char *filename);
 
     void readfromDump(const char *filename);
@@ -247,41 +251,41 @@ public:
 
     void dumpNodesToFile(const char *filename);
 
-    /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
-    /// @param frame
-    /// @param goal_x
-    /// @param goal_z
-    /// @param goal_heading
-    void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
 
-    /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
-    /// @param x 
-    /// @param z 
-    /// @return 
-    bool isDirectlyConnectedToGoal(int x, int z);
+    // /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
+    // /// @param frame
+    // /// @param goal_x
+    // /// @param goal_z
+    // /// @param goal_heading
+    // void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
 
-    /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    /// @param x 
-    /// @param z 
-    /// @return 
-    float directConnectionToGoalCost(int x, int z);
+    // /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
+    // /// @param x
+    // /// @param z
+    // /// @return
+    // bool isDirectlyConnectedToGoal(int x, int z);
 
-    /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    /// @param x 
-    /// @param z 
-    /// @return 
-    angle directConnectionToGoalHeading(int x, int z);
+    // /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    // /// @param x
+    // /// @param z
+    // /// @return
+    // float directConnectionToGoalCost(int x, int z);
 
+    // /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    // /// @param x
+    // /// @param z
+    // /// @return
+    // angle directConnectionToGoalHeading(int x, int z);
 
-    bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
+    // bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
 
-    float4 bestGraphDirectConnectionParent();
+    // float4 bestGraphDirectConnectionParent();
 
-    float4 bestGraphDirectConnectionChild();
+    // float4 bestGraphDirectConnectionChild();
 
     sptr<float4> convertPlannedPath(std::vector<Waypoint> path);
 
-    bool optimizePathLoop(float3 *og, sptr<float4> path, int path_size, float distanceToGoalTolerance, bool isSafeZoneChecked);
+    bool optimizePathLoop(float3 *frame, sptr<float4> path, int path_size, float distanceToGoalTolerance);
 };
 
 #endif

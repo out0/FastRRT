@@ -28,6 +28,17 @@ extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, f
 extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
 extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
 
+extern __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3 *frame,
+                                                              float *classCosts, int *searchSpaceParams, float max_curvature,
+                                                              int x, int z, float local_heading, int goal_x, int goal_z, float goal_heading,
+                                                              bool isSafeZoneChecked, bool isDistanceToGoalProcessed,
+                                                              float distance_to_goal_tolerance,
+                                                              float max_heading_error);
+
+extern __device__ __host__ bool preProcessedCollisionDistance(int *searchParams);
+extern __device__ __host__ bool preProcessedCollisionVector(int *searchParams);
+extern __device__ __host__ bool preProcessedDistanceToGoal(int *searchParams);
+
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
     return a.x == b.x && a.y == b.y;
@@ -86,13 +97,14 @@ void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
     setTypeCuda(_graph->getCudaPtr(), pos, GRAPH_TYPE_NODE);
 }
 
-
-__device__ __host__ bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value) {
+__device__ __host__ bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value)
+{
 
 #ifdef __CUDA_ARCH__
     return atomicCAS(&(graph[pos].z), expected_value, new_value) == expected_value;
 #else
-    if (graph[pos].z == expected_value) {
+    if (graph[pos].z == expected_value)
+    {
         graph[pos].z = new_value;
         return true;
     }
@@ -100,25 +112,27 @@ __device__ __host__ bool change_graph_type_if_current_value_equals_expected_valu
 #endif
 }
 
-__device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad, 
-    float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float velocity_m_s, bool *nodeCollision)
+__device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                       float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
+                                       bool ignore_collision)
 {
     int width = searchParams[FRAME_PARAM_WIDTH];
 
     float heading = getHeadingCuda(graphData, pos);
 
-    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle_rad, pathSize, velocity_m_s);
+    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogCoordinateStart, {x, z}, steeringAngle_rad, pathSize, velocity_m_s);
 
     // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
 
     if (end.x < 0 || end.y < 0)
-        return {-1, -1};
+        return {-1, -1, -1, 0.0};
 
     int end_x = TO_INT(end.x);
     int end_z = TO_INT(end.y);
 
-    if (end_x == ogStart->x && end_z == ogStart->y) {
-        return {-1, -1};
+    if (end_x == ogCoordinateStart->x && end_z == ogCoordinateStart->y)
+    {
+        return {-1, -1, -1, 0.0};
     }
 
     float end_cost = end.z;
@@ -127,25 +141,31 @@ __device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *fra
     long end_pos = computePos(width, end_x, end_z);
 
     if (end_pos == pos)
-        return {-1, -1};
+        return {-1, -1, -1, 0.0};
 
-    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP)) {
+    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP))
+    {
         // A new node is being added to the graph
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+        return {end.x, end.y, end_heading, 1.0};
     }
-    
-    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION)) {
+
+    if (!ignore_collision && change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION))
+    {
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
         *nodeCollision = true;
         decNodeDeriveCount(graph, pos);
+        return {end.x, end.y, end_heading, 0.0};
     }
 
-    return {TO_INT(end.x), TO_INT(end.y)};
+    return {-1, -1, -1, 0.0};
 }
 
-
-__global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading)
+__global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData,
+                                             float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogCoordinateStart,
+                                             float maxPathSize, float velocity_m_s, bool controlExpansion, bool forceExpansion, bool *nodeCollision,
+                                             int2 goal, float goal_heading, float distToGoalTolerance, float maxHeadingError)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = searchParams[FRAME_PARAM_WIDTH];
@@ -157,7 +177,7 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
     if (!checkInGraphCuda(graph, pos))
         return;
 
-    if (frontierExploration && getNodeDeriveCount(graph, pos) > 0)
+    if (controlExpansion && getNodeDeriveCount(graph, pos) > 0)
     {
         // printf("%d, %d has been derived too many times, skipping...\n", x, z);
         return;
@@ -168,8 +188,9 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
 
     float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    double maxCurvature = physicalParams[PHYSICAL_MAX_CURVATURE];
 
-//    printf ("max_curvature = %f\n", max_curvature);
+    //    printf ("max_curvature = %f\n", max_curvature);
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = 0;
@@ -179,17 +200,50 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
         pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     }
 
-    expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogStart, velocity_m_s, nodeCollision);
+    /// during strong exponential expansion which we are not forcing graph expansion, 
+    // we can ignore graph collision to improve speed, because the graph is still expanding. 
+    // We did not reach a stuck state yet. If we keep colliding, we can make our graph reshape too early
+    const bool ignore_collision = !forceExpansion && !controlExpansion;
+
+    float4 result_node = expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogCoordinateStart, velocity_m_s, nodeCollision, ignore_collision);
+
+    const bool node_expansion_successful = result_node.w == 1.0;
+
+    if (node_expansion_successful)
+    {
+        const int x_new = TO_INT(result_node.x);
+        const int z_new = TO_INT(result_node.y);
+        const float heading_new = result_node.z;
+
+        bool safeZoneChecked = preProcessedCollisionDistance(searchParams);
+        bool distToGoalChecked = preProcessedDistanceToGoal(searchParams);
+
+        float4 direct_connection = checkDirectConnectionToGoal(graphData, frame, classCosts,
+                                                               searchParams, maxCurvature, x_new, z_new, heading_new,
+                                                               goal.x, goal.y, goal_heading, safeZoneChecked, distToGoalChecked,
+                                                               distToGoalTolerance, maxHeadingError);
+        const int last_x = TO_INT(direct_connection.x);
+        const int last_z = TO_INT(direct_connection.y);
+        const float last_heading = direct_connection.z;
+        const float nodeCost = direct_connection.w;
+
+        if (last_x < 0)
+            return;
+
+        const int direct_connection_pos = computePos(width, last_x, last_z);
+        // creates (last_x, last_z) node in the graph (which is a final node candidate) and connects it tothe current new node directly
+        set(graph, graphData, direct_connection_pos, last_heading, x_new, z_new, nodeCost, GRAPH_TYPE_TEMP, false);
+    }
 }
 
-
-void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading)
+void CudaGraph::expandTree(float3 *og, float maxPathSize, float velocity_m_s,
+                           bool controlExpansion, bool forceExpansion,  int2 goal, angle goal_heading,
+                           float dist_to_goal_tolerance, angle heading_error_tolerance)
 {
     int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_nodeCollision->get() = false;
-    const long start_node_pos = computePos(_graph->width(), start_node.x, start_node.y);
 
     __CUDA_random_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
@@ -202,29 +256,31 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         _ogCoordinateStart->get(),
         maxPathSize,
         velocity_m_s,
-        frontierExpansion,
+        controlExpansion,
+        forceExpansion,
         _nodeCollision->get(),
-        start_node_pos,
         goal,
-        goal_heading.rad());
+        goal_heading.rad(),
+        dist_to_goal_tolerance,
+        heading_error_tolerance.rad());
 
     CUDA(cudaDeviceSynchronize());
 
-    //dumpNodesToFile("before_collision.txt");
+    // dumpNodesToFile("before_collision.txt");
 
     if (*_nodeCollision->get())
     {
-       // printf("Collision detected, solving...\n");
+        // printf("Collision detected, solving...\n");
 
         solveCollisions();
-       // dumpNodesToFile("after_collision.txt");
+        // dumpNodesToFile("after_collision.txt");
     }
 }
 
-int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
+float4 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
 {
     if (!checkInGraph(x, z))
-        return int2{-1, -1};
+        return float4{-1, -1, -1, 0};
 
     long pos = computePos(_graph->width(), x, z);
 
@@ -240,7 +296,8 @@ int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, f
         _physicalParams->get(),
         _ogCoordinateStart->get(),
         velocity_m_s,
-        _nodeCollision->get());
+        _nodeCollision->get(),
+        false);
 }
 
 bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int goal_x, int goal_z, int goal_heading)

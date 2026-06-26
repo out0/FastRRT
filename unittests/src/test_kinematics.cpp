@@ -66,9 +66,11 @@ TEST(TestKinematics, TestCheckKinematicPath)
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
-    int2 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
+    float4 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
 
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, node, 2));
+    int2 end = {static_cast<int>(node.x), static_cast<int>(node.y)};
+
+    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, end, 2));
 }
 
 TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
@@ -89,7 +91,9 @@ TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
-    int2 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
+    float4 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
 
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, node, 2));
+    int2 end = {static_cast<int>(node.x), static_cast<int>(node.y)};
+
+    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, end, 2));
 }

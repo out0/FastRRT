@@ -158,6 +158,7 @@ extern "C"
         graph->solveCollisions();
     }
 
+    /*
     void process_direct_goal_connection(void *ptr, void *frame_ptr, int goal_x, int goal_z, float goal_heading_rad, float max_curvature)
     {
         CudaGraph *graph = (CudaGraph *)ptr;
@@ -183,7 +184,7 @@ extern "C"
         CudaGraph *graph = (CudaGraph *)ptr;
         angle a = graph->directConnectionToGoalHeading(x, z);
         return a.rad();
-    }
+    } */
 
     void dump_graph_to_file (void *ptr, char *filename) {
         CudaGraph *graph = (CudaGraph *)ptr;

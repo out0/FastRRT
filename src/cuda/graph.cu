@@ -193,7 +193,19 @@ __device__ __host__ float getDirectCostCuda(float4 *graphData, long pos)
 {
     return graphData[pos].w;
 }
-
+__device__ __host__ bool preProcessedCollisionDistance(int *searchParams)
+{
+    return searchParams[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_DIST ||
+           searchParams[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_VECTOR;
+}
+__device__ __host__ bool preProcessedCollisionVector(int *searchParams)
+{
+    return searchParams[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_VECTOR;
+}
+__device__ __host__ bool preProcessedDistanceToGoal(int *searchParams)
+{
+    return searchParams[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] == 1;
+}
 __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos)
 {
     long curr_pos = pos;
@@ -215,7 +227,6 @@ __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, in
     printf("[CUDA ERROR] DAG is inconsistent on %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
 }
 
-
 __device__ __host__ double computeHeading(int x1, int z1, int x2, int z2)
 {
     double dz = z2 - z1;
@@ -232,8 +243,6 @@ __device__ __host__ double computeHeading(int x1, int z1, int x2, int z2)
 
     return HALF_PI - v1;
 }
-
-
 
 float CudaGraph::getDirectCost(int x, int z)
 {
@@ -259,8 +268,9 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams->get()[FRAME_PARAM_HEIGHT] = height;
     _searchSpaceParams->get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);
     _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
+    _searchSpaceParams->get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_NONE;
+    _searchSpaceParams->get()[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] = 0;
     _classCosts = nullptr;
-
 
     _bestNodeDirectConnection = std::make_unique<CudaPtr<float4>>(2);
     _bestNodeDirectConnectionCost = std::make_unique<CudaPtr<long long>>(1);
@@ -297,10 +307,9 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     const float t = tanf(maxSteeringAngle.rad());
 
     if (max_curvature < 0)
-        this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4  + t));
+        this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4 + t));
     else
         this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = max_curvature;
-
 }
 
 void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound)
@@ -313,7 +322,18 @@ void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, 
     _searchSpaceParams->get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
-void CudaGraph::setClassCosts(float *costs, int count)
+void CudaGraph::setPreProcessCollisionEnable(bool vectorCheck)
+{
+    _searchSpaceParams->get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_DIST;
+    if (vectorCheck)
+        _searchSpaceParams->get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_VECTOR;
+}
+void CudaGraph::setPreProcessDistanceEnable()
+{
+    _searchSpaceParams->get()[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] = 1;
+}
+
+void CudaGraph::CudaGraph::setClassCosts(float *costs, int count)
 {
     _classCosts = std::make_unique<CudaPtr<float>>(count);
 
@@ -561,4 +581,3 @@ void CudaGraph::setCollision(int x, int z, int new_parent_x, int new_parent_z, a
         decNodeDeriveCount(_graph->getCudaPtr(), currentParentPos);
     }
 }
-

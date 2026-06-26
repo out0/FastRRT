@@ -55,7 +55,7 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
 
             float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
 
-            float cost_graph_node_to_precomputed_node_with_connection_to_goal = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
+            float cost_graph_node_to_precomputed_node_with_connection_to_goal = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, local_intermediate_heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
 
             if (cost_graph_node_to_precomputed_node_with_connection_to_goal < 0)
                 continue;

@@ -1,5 +1,8 @@
 #include "../include/fastrrt.h"
 #include <bits/algorithmfwd.h>
+
+#define DIRECT_CONNECTION_ENABLED 1
+
 /*
 FastRRT::FastRRT(
     int width,
@@ -33,11 +36,11 @@ FastRRT::FastRRT(
 */
 
 FastRRT::FastRRT(EgoParams &egoParams) : _graph(CudaGraph(egoParams.width(), egoParams.height())),
-                           _start(Waypoint(0, 0, angle::rad(0))),
-                           _goal(Waypoint(0, 0, angle::rad(0))),
-                           _hasPlanData(false),
-                           _headingErrorTolerance(angle::deg(10)),
-                           _egoParams(egoParams)
+                                         _start(Waypoint(0, 0, angle::rad(0))),
+                                         _goal(Waypoint(0, 0, angle::rad(0))),
+                                         _hasPlanData(false),
+                                         _headingErrorTolerance(angle::deg(10)),
+                                         _egoParams(egoParams)
 {
     auto [perceptionWidthSize_m, perceptionHeightSize_m] = egoParams.searchFramePhysicalDimensions();
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, egoParams.maxSteeringAngle(), egoParams.vehicleLength_m(), egoParams.maxCurvature());
@@ -76,7 +79,11 @@ void FastRRT::setPlanData(SearchParams &params)
 
     _graph.setSearchParams(params.minDistance(), _egoParams.egoLowerBound(), _egoParams.egoUpperBound());
     _graph.setClassCosts(frame->getCudaClassCostsPtr(), frame->getClassCount());
-    _graph.processDirectGoalConnection(frame, _goal.x(), _goal.z(), _goal.heading(), 0.8);
+    if (frame->isSafeZoneChecked())
+        _graph.setPreProcessCollisionEnable(frame->isVectorialSafeZoneChecked());
+    if (frame->isDistanceToGoalProcessed())
+        _graph.setPreProcessDistanceEnable();
+    //_graph.processDirectGoalConnection(frame, _goal.x(), _goal.z(), _goal.heading(), 0.8);
     // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
@@ -113,18 +120,19 @@ bool FastRRT::loop(bool smart)
         return false;
     }
 
-    bool expandFrontier = _last_expanded_node_count >= 100;
+    bool controlExpansion = _last_expanded_node_count >= 100;
+    bool forceExpansion = _last_expanded_node_count == 0;
 
     // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
     //_graph.dumpNodesToFile("before_error_1.txt");
     if (smart)
     {
-        _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0, {_goal.x(), _goal.z()}, _goal.heading());
+        _graph.smartExpansion(_ptr, _maxPathSize, _planningVelocity_m_s, controlExpansion, forceExpansion, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _headingErrorTolerance);
     }
     else
     {
-        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, {_start.x(), _start.z()}, {_goal.x(), _goal.z()}, _goal.heading());
+        _graph.expandTree(_ptr, _maxPathSize, _planningVelocity_m_s, controlExpansion, forceExpansion, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _headingErrorTolerance);
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
@@ -141,36 +149,37 @@ bool FastRRT::loop(bool smart)
     //_graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
 
-    // TODO: link last option to searchframe state
-    if (_graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true))
-    {
-        float4 parent_in_graph = _graph.bestGraphDirectConnectionParent();
-        // child
-        float4 child_in_expansion_candidates = _graph.bestGraphDirectConnectionChild();
+    // #ifdef DIRECT_CONNECTION_ENABLED
+    //     // TODO: link last option to searchframe state
+    //     if (_graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true))
+    //     {
+    //         float4 parent_in_graph = _graph.bestGraphDirectConnectionParent();
+    //         // child
+    //         float4 child_in_expansion_candidates = _graph.bestGraphDirectConnectionChild();
 
-        const int parent_x = TO_INT(parent_in_graph.x);
-        const int parent_z = TO_INT(parent_in_graph.y);
-        const float parent_base_cost = _graph.getCost(parent_x, parent_z);
+    //         const int parent_x = TO_INT(parent_in_graph.x);
+    //         const int parent_z = TO_INT(parent_in_graph.y);
+    //         const float parent_base_cost = _graph.getCost(parent_x, parent_z);
 
-        _graph.add(TO_INT(child_in_expansion_candidates.x), TO_INT(child_in_expansion_candidates.y),
-                   angle::rad(child_in_expansion_candidates.z),
-                   parent_x, parent_z, parent_in_graph.w + parent_base_cost);
+    //         _graph.add(TO_INT(child_in_expansion_candidates.x), TO_INT(child_in_expansion_candidates.y),
+    //                    angle::rad(child_in_expansion_candidates.z),
+    //                    parent_x, parent_z, parent_in_graph.w + parent_base_cost);
 
-        const int child_x = TO_INT(child_in_expansion_candidates.x);
-        const int child_z = TO_INT(child_in_expansion_candidates.y);
-        const float child_cost = child_in_expansion_candidates.z + parent_base_cost;
+    //         const int child_x = TO_INT(child_in_expansion_candidates.x);
+    //         const int child_z = TO_INT(child_in_expansion_candidates.y);
+    //         const float child_cost = child_in_expansion_candidates.z + parent_base_cost;
 
-        _graph.add(_goal.x(), _goal.z(), _goal.heading(), child_x, child_z, child_cost);
+    //         _graph.add(_goal.x(), _goal.z(), _goal.heading(), child_x, child_z, child_cost);
 
-        // printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
-        //        parent_x, parent_z, child_x, child_z, _goal.x(), _goal.z(), child_cost);
-    }
-
-    // if (!_graph.checkGraphIsConsistent()) {
-    //     //_graph.dumpNodesToFile("error.txt");
-    //     printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
-    //     return false;
-    // }
+    //         // printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
+    //         //        parent_x, parent_z, child_x, child_z, _goal.x(), _goal.z(), child_cost);
+    //     }
+    // #endif
+    //     // if (!_graph.checkGraphIsConsistent()) {
+    //     //     //_graph.dumpNodesToFile("error.txt");
+    //     //     printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
+    //     //     return false;
+    //     // }
     if (goalReached())
     {
         // printf ("shrinking graph...\n");
@@ -189,10 +198,15 @@ bool FastRRT::path_optimize()
 
     sptr<float4> path = _graph.convertPlannedPath(res);
 
-    //printf("[path optimize] size = %ld\n", res.size());
+    // printf("[path optimize] size = %ld\n", res.size());
 
     // TODO: check if the distances are trully checked (last bool)
-    return _graph.optimizePathLoop(_ptr, path, res.size(), _distToGoalTolerance, true);
+
+    return _graph.optimizePathLoop(
+        _ptr, 
+        path, 
+        res.size(), 
+        _distToGoalTolerance);
 }
 
 bool FastRRT::goalReached()

@@ -25,9 +25,20 @@ extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int co
 extern __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
 extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
 extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
-extern __device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad, float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float velocity_m_s, bool *nodeCollision);
-#define MIN_PATH_SIZE 5.0
+extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                              float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float velocity_m_s, bool *nodeCollision,
+                                              bool ignore_collision);
+extern __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3 *frame,
+                                                              float *classCosts, int *searchSpaceParams, float max_curvature,
+                                                              int x, int z, float local_heading, int goal_x, int goal_z, float goal_heading,
+                                                              bool isSafeZoneChecked, bool isDistanceToGoalProcessed,
+                                                              float distance_to_goal_tolerance,
+                                                              float max_heading_error);                                              
+extern __device__ __host__ bool preProcessedCollisionDistance(int *searchParams);
+extern __device__ __host__ bool preProcessedCollisionVector(int *searchParams);
+extern __device__ __host__ bool preProcessedDistanceToGoal(int *searchParams);
 
+#define MIN_PATH_SIZE 5.0
 
 #define BLOCK_SIZE 128
 #define CHECK_NO_COLLISION 1
@@ -65,9 +76,9 @@ __global__ void __CUDA_count_nodes_in_density_region(int4 *graph, int *params, u
     atomicInc(&node_count[densityPos], 99999999);
 }
 
-__device__ __host__ bool checkCanExpand(int4 *graph, unsigned int *region_count, int *params, float node_mean, int pos, int x, int z, bool expandFrontier)
+__device__ __host__ bool checkCanExpand(int4 *graph, unsigned int *region_count, int *params, float node_mean, int pos, int x, int z, bool controlExpansion)
 {
-    if (expandFrontier)
+    if (controlExpansion)
     {
         return getNodeDeriveCount(graph, pos) == 0;
     }
@@ -158,7 +169,12 @@ void CudaGraph::computeGraphRegionDensity()
     }
 }
 
-__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading)
+__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData,
+                                            float3 *frame, unsigned int *region_count, int node_mean, float *classCosts,
+                                            int *searchParams, double *physicalParams, float3 *ogStart,
+                                            float maxPathSize, float velocity_m_s, bool controlExpansion, bool forceExpansion,
+                                            bool *nodeCollision, int goal_x, int goal_z, float goal_heading,
+                                            float dist_to_goal_tolerance, float heading_error_tolerance_rad)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -175,7 +191,7 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     int x = pos - z * width;
 
     // Smart expansion: if this node is a leaf, it can be expanded. If not, it still can be expanded if the region density is lower than the mean density
-    if (!forceExpand && !checkCanExpand(graph, region_count, searchParams, node_mean, pos, x, z, expandFrontier))
+    if (!forceExpansion && !checkCanExpand(graph, region_count, searchParams, node_mean, pos, x, z, controlExpansion))
     {
         // const int densityPos = computeDensityPos(searchParams[FRAME_DENSITY_WIDTH], x, z);
         // printf("wont expand (%d, %d) because of density: %d vs mean %d\n", x, z, region_count[densityPos], node_mean);
@@ -184,16 +200,50 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
 
     float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    double maxCurvature = physicalParams[PHYSICAL_MAX_CURVATURE];
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     if (pathSize <= 0)
         pathSize = MIN_PATH_SIZE;
 
-    expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogStart, velocity_m_s, nodeCollision);
+    /// during strong exponential expansion which we are not forcing graph expansion, 
+    // we can ignore graph collision to improve speed, because the graph is still expanding. 
+    // We did not reach a stuck state yet. If we keep colliding, we can make our graph reshape too early
+    const bool ignore_collision = !forceExpansion && !controlExpansion;
+
+    float4 result_node = expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogStart, velocity_m_s, nodeCollision, ignore_collision);
+
+    const bool node_expansion_successful = result_node.w == 1.0;
+
+    if (node_expansion_successful)
+    {
+        const int x_new = TO_INT(result_node.x);
+        const int z_new = TO_INT(result_node.y);
+        const float heading_new = result_node.z;
+
+        bool safeZoneChecked = preProcessedCollisionDistance(searchParams);
+        bool distToGoalChecked = preProcessedDistanceToGoal(searchParams);
+
+        float4 direct_connection = checkDirectConnectionToGoal(graphData, frame, classCosts,
+                                                               searchParams, maxCurvature, x_new, z_new, heading_new,
+                                                               goal_x, goal_z, goal_heading, safeZoneChecked, distToGoalChecked,
+                                                               dist_to_goal_tolerance, heading_error_tolerance_rad);
+        const int last_x = TO_INT(direct_connection.x);
+        const int last_z = TO_INT(direct_connection.y);
+        const float last_heading = direct_connection.z;
+        const float nodeCost = direct_connection.w;
+
+        if (last_x < 0)
+            return;
+        
+        const int direct_connection_pos = computePos(width, last_x, last_z);
+        // creates (last_x, last_z) node in the graph (which is a final node candidate) and connects it to the current new node directly
+        set(graph, graphData, direct_connection_pos, last_heading, x_new, z_new, nodeCost, GRAPH_TYPE_TEMP, false);
+    }
 }
 
-void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading)
+void CudaGraph::smartExpansion(float3 *og, float maxPathSize, float velocity_m_s, bool controlExpansion, bool forceExpansion, int2 goal, angle goal_heading, float dist_to_goal_tolerance, angle heading_error_tolerance)
 {
     int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -213,12 +263,14 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
         _ogCoordinateStart->get(),
         maxPathSize,
         velocity_m_s,
-        expandFrontier,
-        forceExpand,
+        controlExpansion,
+        forceExpansion,
         _nodeCollision->get(),
         goal.x,
         goal.y,
-        goal_heading.rad());
+        goal_heading.rad(),
+        dist_to_goal_tolerance,
+        heading_error_tolerance.rad());
 
     CUDA(cudaDeviceSynchronize());
 
@@ -226,7 +278,7 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
 
     if (*_nodeCollision->get())
     {
-        //printf("solving graph collision\n");
+        // printf("solving graph collision\n");
         solveCollisions();
     }
 }

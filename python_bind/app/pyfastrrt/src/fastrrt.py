@@ -119,14 +119,7 @@ class FastRRT:
           FastRRT.lib.interpolate_planned_path.argtypes = [
                ctypes.c_void_p,
           ]
-          
-          FastRRT.lib.interpolate_planned_path_p.restype = ctypes.POINTER(ctypes.c_float)
-          FastRRT.lib.interpolate_planned_path_p.argtypes = [
-               ctypes.c_void_p,
-               np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
-               ctypes.c_int32
-          ]
-          
+                   
           FastRRT.lib.ideal_curve.restype = ctypes.POINTER(ctypes.c_float)
           FastRRT.lib.ideal_curve.argtypes = [
                ctypes.c_void_p,
@@ -222,29 +215,30 @@ class FastRRT:
      #           res[i, 2] = float(ptr[pos + 2])
      #      return res
 
-     def __convert_planned_path(self, ptr: ctypes.c_void_p) -> list[Waypoint]:
+     def __convert_planned_path(self, ptr: ctypes.c_void_p) -> tuple[list[Waypoint], float]:
           size = int(ptr[0])
+          cost = float(ptr[1])
           if size == 0:
                return None
           
           res = []
           for i in range(size):
-               pos = 3*i + 1
+               pos = 3*i + 2
                res.append(Waypoint(
                     x=int(ptr[pos]),
                     z=int(ptr[pos + 1]),
                     heading=angle.new_rad(ptr[pos + 2])))
-          return res     
+          return res, cost
      
-     def get_planned_path(self, interpolate: bool = False) -> list[Waypoint]:
+     def get_planned_path(self, interpolate: bool = False) -> tuple[list[Waypoint], float]:
           if interpolate:
                ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
           else:
                ptr = FastRRT.lib.get_planned_path(self.__ptr)
           
-          res = self.__convert_planned_path(ptr)
+          res, cost = self.__convert_planned_path(ptr)
           FastRRT.lib.release_planned_path_data(ptr)
-          return res
+          return res, cost
      
      # def interpolate_planned_path_p(self, path: np.ndarray) -> np.ndarray:          
      #      size = path.shape[0]
@@ -257,7 +251,7 @@ class FastRRT:
      
      def build_ideal_curve(self, goal_x: int, goal_z:int, goal_heading: float) -> np.ndarray:
           ptr = FastRRT.lib.ideal_curve(self.__ptr, goal_x, goal_z, goal_heading)
-          res = self.__convert_planned_path(ptr)
+          res, _ = self.__convert_planned_path(ptr)
           FastRRT.lib.release_planned_path_data(ptr)
           return res
      

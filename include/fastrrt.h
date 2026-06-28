@@ -10,6 +10,7 @@
 #include <driveless/cuda_frame.h>
 #include <driveless/search_params.h>
 #include <vector>
+#include <tuple>
 #include "graph.h"
 
 // typedef float3* cudaPtr;
@@ -53,8 +54,8 @@ public:
     /// @return vector, where each node = [x, z, node_type]
     std::vector<GraphNode> exportGraphNodes();
 
-    std::vector<Waypoint> getPlannedPath();
-    std::vector<Waypoint> interpolatePlannedPath();
+    std::tuple<std::vector<Waypoint>, float> getPlannedPath();
+    std::tuple<std::vector<Waypoint>, float> interpolatePlannedPath();
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
     void computeGraphRegionDensity();

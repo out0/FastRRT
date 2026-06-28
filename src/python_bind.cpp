@@ -111,21 +111,22 @@ extern "C"
         delete[] ptr;
     }
 
-    float *convertPath(std::vector<Waypoint> &path)
+    float *convertPath(std::vector<Waypoint> &path, float cost)
     {
         int size = path.size();
 
         // printf("size = %d\n", size);
 
-        float *res = new float[3 * size + 1];
+        float *res = new float[3 * size + 2];
         res[0] = (float)size;
+        res[1] = cost;
 
         // printf("res[0] = %f\n", res[0]);
 
         int i = 0;
         for (auto p : path)
         {
-            int pos = (3 * i + 1);
+            int pos = (3 * i + 2);
             res[pos] = p.x();
             res[pos + 1] = p.z();
             res[pos + 2] = p.heading().rad();
@@ -138,36 +139,20 @@ extern "C"
     float *get_planned_path(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        std::vector<Waypoint> path = rrt->getPlannedPath();
-        return convertPath(path);
+        auto [path, cost] = rrt->getPlannedPath();
+        return convertPath(path, cost);
     }
 
     float *interpolate_planned_path(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        std::vector<Waypoint> path = rrt->interpolatePlannedPath();
-        return convertPath(path);
+        auto [path, cost] = rrt->interpolatePlannedPath();
+        return convertPath(path, cost);
     }
 
     void release_planned_path_data(float *ptr)
     {
         delete[] ptr;
-    }
-
-    float *interpolate_planned_path_p(void *ptr, float *p, int size)
-    {
-        FastRRT *rrt = (FastRRT *)ptr;
-
-        std::vector<Waypoint> pref;
-
-        for (int i = 0; i < size; i += 3)
-        {
-            pref.push_back(Waypoint(p[i], p[i + 1], angle::rad(p[i + 2])));
-            printf("(%d, %d, %f)\n", (int)p[i], (int)p[i + 1], p[i + 2]);
-        }
-
-        std::vector<Waypoint> path = rrt->interpolatePlannedPath(pref);
-        return convertPath(path);
     }
 
     float *ideal_curve(void *ptr, int goal_x, int goal_z, float goal_heading_rad)
@@ -176,7 +161,7 @@ extern "C"
         std::vector<Waypoint> path = rrt->idealGeometryCurveNoObstacles({goal_x,
                                                                          goal_z,
                                                                          angle::rad(goal_heading_rad)});
-        return convertPath(path);
+        return convertPath(path, -1);
     }
 
     void compute_region_debug_performance(void *ptr)

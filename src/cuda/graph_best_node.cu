@@ -13,10 +13,10 @@ extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 #define K2 3
 #define K3 1
 
-__device__ long long __compute_cost_findBestNode(float dist, float heading_rad, float nodeCost) {
+__device__ long long __compute_cost_findBestNode(float dist, float heading_rad, float nodeCost)
+{
     return __float2ll_rd(K1 * dist + K2 * TO_DEG * heading_rad + K3 * nodeCost);
 }
-
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
     int4 *graph,
@@ -52,20 +52,23 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
 
     const float dist = sqrtf(dx * dx + dz * dz);
 
-    if (dist > searchRadius) {
-        //printf ("%d, %d failed because of dist\n", x, z);
+    if (dist > searchRadius)
+    {
+        // printf ("%d, %d failed because of dist\n", x, z);
         return;
     }
 
     float heading = getHeadingCuda(graphData, pos);
 
-    if (abs(heading - targetHeading_rad) > maxHeadingError_rad) {
-        //printf ("%d, %d failed because of heading error: %f vs %f\n", x, z, abs(heading - targetHeading_rad), maxHeadingError_rad);
+    if (abs(heading - targetHeading_rad) > maxHeadingError_rad)
+    {
+        // printf ("%d, %d failed because of heading error: %f vs %f\n", x, z, abs(heading - targetHeading_rad), maxHeadingError_rad);
         return;
     }
 
-    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading)) {
-        //printf ("%d, %d, %f failed because is unfeasible minDistX = %d, minDistZ = %d\n", x, z, heading, minDistX, minDistZ);
+    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
+    {
+        // printf ("%d, %d, %f failed because is unfeasible minDistX = %d, minDistZ = %d\n", x, z, heading, minDistX, minDistZ);
         return;
     }
 
@@ -75,17 +78,17 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
 }
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(
-    int4 *graph, 
-    float4 *graphData, 
-    float3 *frame, 
-    int *params, 
-    float *classCost, 
-    float searchRadius, 
-    int targetX, 
-    int targetZ, 
-    float targetHeading_rad, 
+    int4 *graph,
+    float4 *graphData,
+    float3 *frame,
+    int *params,
+    float *classCost,
+    float searchRadius,
+    int targetX,
+    int targetZ,
+    float targetHeading_rad,
     float maxHeadingError_rad,
-    long long bestCost, 
+    long long bestCost,
     int2 *node)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -131,16 +134,39 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(
     }
 }
 
-int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError)
+int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError, long long cost)
 {
     int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     CudaPtr<int2> bestNode(1);
-    CudaPtr<long long> cost(1);
-
     bestNode.get()->x = -1;
     bestNode.get()->y = -1;
+
+    __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost<<<numBlocks, THREADS_IN_BLOCK>>>(
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
+        og,
+        _searchSpaceParams->get(),
+        _classCosts->get(),
+        radius,
+        x, z,
+        heading.rad(),
+        maxHeadingError,
+        cost,
+        bestNode.get());
+
+    CUDA(cudaDeviceSynchronize());
+
+    return {bestNode.get()->x, bestNode.get()->y};
+}
+
+long long CudaGraph::findBestNodeCost(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError)
+{
+    int size = _graph->width() * _graph->height();
+    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    CudaPtr<long long> cost(1);
     *cost.get() = 99999999999;
 
     __CUDA_KERNEL_findBestNodeWithHeading_bestCost<<<numBlocks, THREADS_IN_BLOCK>>>(
@@ -150,45 +176,29 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
         _searchSpaceParams->get(),
         _classCosts->get(),
         radius,
-        x, z, heading.rad(), 
+        x, z, heading.rad(),
         maxHeadingError,
         cost.get());
 
     CUDA(cudaDeviceSynchronize());
 
     if (*cost.get() >= 99999999999)
-        return {-1, -1};
-
-    __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
-        og,
-        _searchSpaceParams->get(),
-        _classCosts->get(),
-        radius,
-        x, z, 
-        heading.rad(),
-        maxHeadingError,
-        *cost.get(),         
-        bestNode.get());
-
-    CUDA(cudaDeviceSynchronize());
-
-    return { bestNode.get()->x,  bestNode.get()->y};
+        return -1;
+    return *cost.get();
 }
 
 extern __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const int2 &end);
 
 __global__ void __CUDA_KERNEL_checkGoalReached(
-    int4 *graph, 
-    float4 *graphData, 
-    float3 *frame, 
-    int *params, 
-    float *costs, 
-    int goalX, 
-    int goalZ, 
-    float goalHeading, 
-    float distToGoalTolerance, 
+    int4 *graph,
+    float4 *graphData,
+    float3 *frame,
+    int *params,
+    float *costs,
+    int goalX,
+    int goalZ,
+    float goalHeading,
+    float distToGoalTolerance,
     float maxHeadingError,
     bool *goalReached)
 {
@@ -211,14 +221,13 @@ __global__ void __CUDA_KERNEL_checkGoalReached(
 
     if (compute_euclidean_2d_dist(s, e) > distToGoalTolerance)
         return;
-    
+
     float heading = getHeadingCuda(graphData, pos);
 
     if (abs(heading - goalHeading) <= maxHeadingError)
         *goalReached = true;
 
-    //printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f heading error: %f, max: %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance, abs(heading - goalHeading), maxHeadingError);
-
+    // printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f heading error: %f, max: %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance, abs(heading - goalHeading), maxHeadingError);
 }
 
 bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError)
@@ -229,7 +238,7 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
     if (*_goalReached->get())
         return true;
 
-     //printf("check goal: %d, %d\n", goal.x, goal.y);
+    // printf("check goal: %d, %d\n", goal.x, goal.y);
 
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
         _graph->getCudaPtr(),
@@ -246,6 +255,6 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
 
     CUDA(cudaDeviceSynchronize());
 
-    //printf ("goal checked\n");
+    // printf ("goal checked\n");
     return *_goalReached->get();
 }

@@ -78,9 +78,6 @@ private:
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
 
-    std::tuple<int, float> __findFirstDirectConnectionToPos(float3 *og, std::vector<float4> res, int pos, bool isSafeZoneChecked);
-    std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
-
 public:
     CudaGraph(int width, int height);
     ~CudaGraph();
@@ -206,7 +203,17 @@ public:
     /// @param z
     /// @param heading
     /// @return
-    int2 findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError);
+    long long findBestNodeCost(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError);
+
+
+    /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
+    /// @param searchFrame
+    /// @param radius
+    /// @param x
+    /// @param z
+    /// @param heading
+    /// @return
+    int2 findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError, long long cost);
 
     /// @brief Checks if there is a feasible connection between start and end, at the given velocity and max steering angle
     /// @param searchFrame

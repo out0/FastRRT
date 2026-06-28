@@ -106,7 +106,7 @@ void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
 
 void FastRRT::__shrink_search_graph()
 {
-    std::vector<Waypoint> path = getPlannedPath();
+    auto [path, cost] = getPlannedPath();
     _graph.clear();
     for (Waypoint &p : path)
         _graph.setType(p.x(), p.z(), GRAPH_TYPE_NODE);
@@ -194,18 +194,18 @@ bool FastRRT::path_optimize()
     if (__check_timeout())
         return false;
 
-    std::vector<Waypoint> res = getPlannedPath();
+    auto [path, cost] = getPlannedPath();
 
-    sptr<float4> path = _graph.convertPlannedPath(res);
+    sptr<float4> optim_path = _graph.convertPlannedPath(path);
 
     // printf("[path optimize] size = %ld\n", res.size());
 
     // TODO: check if the distances are trully checked (last bool)
 
     return _graph.optimizePathLoop(
-        _ptr, 
-        path, 
-        res.size(), 
+        _ptr,
+        optim_path,
+        path.size(),
         _distToGoalTolerance);
 }
 
@@ -215,17 +215,21 @@ bool FastRRT::goalReached()
     return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance, _headingErrorTolerance.rad());
 }
 
-std::vector<Waypoint> FastRRT::getPlannedPath()
+std::tuple<std::vector<Waypoint>, float> FastRRT::getPlannedPath()
 {
     std::vector<Waypoint> res;
 
     if (!_hasPlanData)
-        return res;
+        return {res, -1};
 
     if (!goalReached())
-        return res;
+        return {res, -1};
 
-    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), _headingErrorTolerance.rad());
+    long long cost = _graph.findBestNodeCost(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), _headingErrorTolerance.rad());
+    if (cost < 0)
+        return {res, -1};
+
+    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), _headingErrorTolerance.rad(), cost);
     long i = 0;
 
     while (n.x != -1 && n.y != -1)
@@ -237,20 +241,20 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
         {
             printf("[ERROR] looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
             res.clear();
-            return res;
+            return {res, -1};
         }
     }
 
     std::reverse(res.begin(), res.end());
-    return res;
+    return {res, cost};
 }
 
 extern std::vector<Waypoint> interpolate(std::vector<Waypoint> &path, int width, int height);
 
-std::vector<Waypoint> FastRRT::interpolatePlannedPath()
+std::tuple<std::vector<Waypoint>, float> FastRRT::interpolatePlannedPath()
 {
-    auto v = getPlannedPath();
-    return interpolate(v, _graph.width(), _graph.height());
+    auto [path, cost] = getPlannedPath();
+    return {interpolate(path, _graph.width(), _graph.height()), cost};
 }
 
 std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path)

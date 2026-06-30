@@ -18,34 +18,57 @@ is defined, the coarse path is optimized using Hermite curve interpolation
 ### Basic setup
 ```python 
 
-planner = FastRRT(
-    search_frame=cframe,
-    perception_width_m=OG_REAL_WIDTH,
-    perception_height_m=OG_REAL_HEIGHT,
-    max_steering_angle_deg=MAX_STEERING_ANGLE,
-    vehicle_length_m=VEHICLE_LENGTH_M,
-    timeout_ms=100,
-    min_dist_x=MIN_DISTANCE_WIDTH_PX,
-    min_dist_z=MIN_DISTANCE_HEIGHT_PX,
-    path_costs=SEGMENTATION_CLASS_COST
-)
-        
-planner.set_plan_data(
-    cuda_ptr=cframe,
-    start=(128, 128, 0.0),
-    goal=(128, 0, 0.0),
-    velocity_m_s=velocity
+ego_params = EgoParams(
+    search_frame_dimensions=(800, 800),
+    search_frame_physical_dimensions=(32.345, 32.345),
+    ego_upper_bound=(375, 350),
+    ego_lower_bound=(425, 400),
+    max_curvature=1.432,
+    max_steering_angle=40,
+    meters_to_pixel_ratio_width=24.7334,
+    meters_to_pixel_ratio_height=24.7334,
+    pixel_to_meters_ratio_width=0.04041,
+    pixel_to_meters_ratio_height=0.04041,
+    segmentation_class_colors=np.array([
+        (0, 0, 0),
+        (255, 255, 255)
+    ], dtype=np.int32),
+    segmentation_class_costs=np.array([
+        -1,
+        1.2
+    ], dtype=np.float32),
+    vehicle_length_m=5.412658774,
+    world_origin=WorldPose(angle.new_rad(0), angle.new_rad(0), 0, angle.new_rad(0))
 )
 
-planner.search_init()
+search_params = SearchParams.init(
+    start=Waypoint(375, 345, angle.new_deg(0)),
+    goal=Waypoint(800, 112, angle.new_deg(0))
+    ).with_world_origin(world_origin)\
+    .with_distance_to_goal_tolerance(distance_px=15)\
+    .with_velocity(velocity_m_s=1.0)\
+    .with_map_origin(origin=MapPose(0, 0, 0, heading=angle.new_rad(0)))\
+    .with_ego_pose(pose=MapPose(0, 0, 0, heading=conf.start.heading))\
+    .with_heading_error_tolerance(angle.new_deg(5))\
+    .with_timeout(timeout)\
+    .with_max_path_size(40)\
+    .with_min_distance((20, 20))\
+    .with_frame(frame)\
+    .build()
 
-while not planner.goal_reached():
-    planner.loop(False)
+planner = FastRRT(ego_params=ego_params)
+planner.set_plan_data(search_params)
+
+planner.initialize()
+
+while planner.planning_loop():
+    pass
 
 # Path Fast Optimization
-planner.path_optimize()
+while planner.path_optimize_loop():
+    pass
 
-path = planner.get_planned_path(True)
+path, cost  = planner.get_interpolated_planned_path()
 
 ``` 
 

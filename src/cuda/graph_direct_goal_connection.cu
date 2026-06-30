@@ -29,7 +29,7 @@ __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3
     //     printf ("checkDirectConnectionToGoal: minDistX, minDistZ = %d, %d\n", minDistX, minDistZ);
 
     const long pos = computePos(width, x, z);
-    const float max_dist_to_goal_squared = distance_to_goal_tolerance;
+    const float max_dist_to_goal_squared = distance_to_goal_tolerance * distance_to_goal_tolerance;
 
     float distance = frame[pos].y;
     if (!isDistanceToGoalProcessed)
@@ -125,21 +125,9 @@ __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3
         last_x = cx;
         last_z = cz;
 
-        int traversability = TO_INT(frame[pos].z);
-
         // if (x == 124 && z == 112) {
         //     printf ("last_x = %d, last_z = %d\n", last_x, last_z);
         // }
-
-        if (isSafeZoneChecked)
-        {
-            const int traversability = TO_INT(frame[computePos(width, cx, cz)].z);
-            if (check_bit(traversability, 0x100))
-                continue;
-            // if (x == 128 && z == 128)
-            //      printf ("SAFEZONE CHECKED last_x = %d, last_z = %d\n", last_x, last_z);
-            // }
-        }
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, last_heading))
         {
@@ -170,6 +158,6 @@ __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3
         return {-1, -1, 0, 0.0};
 
     
-
+//    printf ("found a direct connection to goal on %d, %d, %f  min dist: %d, %d\n", last_x, last_z, last_heading, minDistX, minDistZ);
     return {TO_FLOAT(last_x), TO_FLOAT(last_z), last_heading, nodeCost};
 }

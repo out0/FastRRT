@@ -9,13 +9,12 @@
 #include <driveless/waypoint.h>
 #include <driveless/cuda_frame.h>
 #include <driveless/search_params.h>
+#include <driveless/local_planner.h>
 #include <vector>
 #include <tuple>
 #include "graph.h"
 
-// typedef float3* cudaPtr;
-
-class FastRRT
+class FastRRT : public LocalPlanner
 {
 private:
     CudaGraph _graph;
@@ -32,6 +31,7 @@ private:
     bool _hasPlanData;
     angle _headingErrorTolerance;
     EgoParams _egoParams;
+    bool _smartExpansion;
 
     void __set_exec_started();
     long __get_exec_time_ms();
@@ -39,23 +39,38 @@ private:
     void __shrink_search_graph();
 
 public:
-    FastRRT(EgoParams &egoParams);
+    FastRRT(EgoParams &egoParams, bool smartExpansion = true);
 
     void setPlanData(SearchParams &params);
 
-    /// @brief
+    /// @brief Initializes the local planner
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.
-    void search_init(bool copyIntrinsicCostsFromFrame = false);
-    bool loop(bool smartExpansion = false);
-    bool path_optimize();
-    bool goalReached();
+    virtual void initialize(bool copyIntrinsicCostsFromFrame = false) override;
+
+    /// @brief Executes a planning loop
+    /// @return false if the planner should stop planning
+    bool planning_loop() override;
+
+    /// @brief Executes a optimization loop
+    /// @return false if the planner should stop optimizing
+    bool path_optimize_loop() override;
+
+    /// @brief Checks if the planner reached the goal
+    /// @return true in case of goal reached
+    bool goalReached() override;
 
     /// @brief Exports the current state of the graph as a vector
     /// @return vector, where each node = [x, z, node_type]
     std::vector<GraphNode> exportGraphNodes();
 
-    std::tuple<std::vector<Waypoint>, float> getPlannedPath();
-    std::tuple<std::vector<Waypoint>, float> interpolatePlannedPath();
+    /// @brief Returns the planned path and the path cost
+    /// @return a tuple with a vector of waypoints and a float representing the total path cost
+    std::tuple<std::vector<Waypoint>, float> getPlannedPath() override;
+
+    /// @brief Returns an interpolation of the planned path and the original path cost
+    /// @return  a tuple with a vector of waypoints and a float representing the total path cost
+    std::tuple<std::vector<Waypoint>, float> getInterpolatedPlannedPath();
+
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
     void computeGraphRegionDensity();

@@ -184,11 +184,12 @@ TEST(TestRRT, TestSearch)
                            .withSegmentationClassCosts(classCosts)
                            .build();
 
-    FastRRT rrt(egoParams);
+    FastRRT rrt(egoParams, false);
 
-    std::vector<Waypoint> path = rrt.getPlannedPath();
+    auto [empty_path, empty_cost] = rrt.getPlannedPath();
 
-    ASSERT_EQ(path.size(), 0);
+    ASSERT_TRUE(empty_cost < 0);
+    ASSERT_EQ(empty_path.size(), 0);
 
     Waypoint goal(107, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
@@ -208,17 +209,18 @@ TEST(TestRRT, TestSearch)
     rrt.setPlanData(params);
     frame.processDistanceToGoal(goal.x(), goal.z());
 
-    rrt.search_init();
+    rrt.initialize();
 
     int i = 0;
-    while (!rrt.goalReached() && rrt.loop(false))
+    while (!rrt.planning_loop())
     {
         // logGraph(&rrt, &frame, "output1.png", ++i);
     }
 
     ASSERT_TRUE(rrt.goalReached());
 
-    path = rrt.getPlannedPath();
+    auto [path, cost]  = rrt.getPlannedPath();
+    ASSERT_TRUE(cost > 0);
     // ASSERT_TRUE(path.size() > 5);
 
     auto last = path.back();
@@ -228,7 +230,7 @@ TEST(TestRRT, TestSearch)
     ASSERT_LE(dx * dx + dz * dz, 400);
 
     // logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1.png");
-    rrt.path_optimize();
+    //while (!rrt.path_optimize_loop()) {}
     // logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1_optim.png");
 
     auto chrono_end = std::chrono::high_resolution_clock::now();
@@ -250,8 +252,8 @@ TEST(TestRRT, TestSearch)
     ASSERT_LE(dx * dx + dz * dz, 400);
     ASSERT_TRUE(rrt.goalReached());
 
-    path = rrt.getPlannedPath();
-    auto path2 = rrt.interpolatePlannedPath(path);
+    auto [ipath, icost] = rrt.getPlannedPath();
+    auto path2 = rrt.interpolatePlannedPath(ipath);
 
     exportPathTo(frame.getCudaPtr(), img.cols, img.rows, path2, "output2.png");
 

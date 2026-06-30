@@ -3,12 +3,13 @@ import ctypes
 import numpy as np
 import os
 from pydriveless import EgoParams, SearchParams, Waypoint, angle
+from pydriveless import LocalPlanner
 
-class FastRRT:
+class FastRRT (LocalPlanner):
      __ptr: ctypes.c_void_p
         
-     def __init__(self, ego_params: EgoParams):
-          
+     def __init__(self, ego_params: EgoParams, smart: bool):
+          super().__init__("FastRRT")
           FastRRT.setup_cpp_lib()
 
           path_costs = ego_params.segmentation_class_costs
@@ -31,7 +32,8 @@ class FastRRT:
                  lb_x, lb_z,
                  ub_x, ub_z,
                  costs,
-                 max_curvature)
+                 max_curvature,
+                 smart)
 
      def __del__(self) -> None:
           if hasattr(FastRRT, "lib"):
@@ -60,7 +62,8 @@ class FastRRT:
             ctypes.c_int,     # upperBound_x
             ctypes.c_int,     # upperBound_z
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), # segmentationClassCost
-            ctypes.c_float    # max_curvature
+            ctypes.c_float,   # max_curvature
+            ctypes.c_bool     # smart
           ]
         
           FastRRT.lib.fastrrt_destroy.restype = None
@@ -93,20 +96,19 @@ class FastRRT:
                ctypes.c_void_p,
           ]
 
-          FastRRT.lib.search_init.restype = None
-          FastRRT.lib.search_init.argtypes = [
+          FastRRT.lib.initialize.restype = None
+          FastRRT.lib.initialize.argtypes = [
                ctypes.c_void_p,
                ctypes.c_bool       # copyIntrinsicCostsFromFrame
           ]
 
-          FastRRT.lib.loop.restype = ctypes.c_bool
-          FastRRT.lib.loop.argtypes = [
-               ctypes.c_void_p,
-               ctypes.c_bool       # smartExpansion
+          FastRRT.lib.planning_loop.restype = ctypes.c_bool
+          FastRRT.lib.planning_loop.argtypes = [
+               ctypes.c_void_p
           ]          
 
-          FastRRT.lib.path_optimize.restype = ctypes.c_bool
-          FastRRT.lib.path_optimize.argtypes = [
+          FastRRT.lib.path_optimize_loop.restype = ctypes.c_bool
+          FastRRT.lib.path_optimize_loop.argtypes = [
                ctypes.c_void_p,
           ]          
           
@@ -115,8 +117,8 @@ class FastRRT:
                ctypes.c_void_p,
           ]
           
-          FastRRT.lib.interpolate_planned_path.restype = ctypes.POINTER(ctypes.c_float)
-          FastRRT.lib.interpolate_planned_path.argtypes = [
+          FastRRT.lib.get_interpolated_planned_path.restype = ctypes.POINTER(ctypes.c_float)
+          FastRRT.lib.get_interpolated_planned_path.argtypes = [
                ctypes.c_void_p,
           ]
                    
@@ -190,14 +192,14 @@ class FastRRT:
             search_params.heading_error_tolerance.rad()
           )
    
-     def search_init(self, copy_intrinsic_costs_from_frame: bool = False) -> None:
-          FastRRT.lib.search_init(self.__ptr, copy_intrinsic_costs_from_frame)
+     def initialize(self, copy_intrinsic_costs_from_frame: bool = False) -> None:
+          FastRRT.lib.initialize(self.__ptr, copy_intrinsic_costs_from_frame)
      
-     def loop(self, smart: bool) -> bool:
-          return FastRRT.lib.loop(self.__ptr, smart)
+     def planning_loop(self) -> bool:
+          return FastRRT.lib.planning_loop(self.__ptr)
         
-     def path_optimize(self) -> bool:
-          return FastRRT.lib.path_optimize(self.__ptr)
+     def path_optimize_loop(self) -> bool:
+          return FastRRT.lib.path_optimize_loop(self.__ptr)
      
      def goal_reached(self) -> bool:
           return FastRRT.lib.goal_reached(self.__ptr)     
@@ -219,7 +221,7 @@ class FastRRT:
           size = int(ptr[0])
           cost = float(ptr[1])
           if size == 0:
-               return None
+               return None, -1
           
           res = []
           for i in range(size):
@@ -230,16 +232,19 @@ class FastRRT:
                     heading=angle.new_rad(ptr[pos + 2])))
           return res, cost
      
-     def get_planned_path(self, interpolate: bool = False) -> tuple[list[Waypoint], float]:
-          if interpolate:
-               ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
-          else:
-               ptr = FastRRT.lib.get_planned_path(self.__ptr)
-          
+     def get_planned_path(self) -> tuple[list[Waypoint], float]:
+          ptr = FastRRT.lib.get_planned_path(self.__ptr)         
           res, cost = self.__convert_planned_path(ptr)
           FastRRT.lib.release_planned_path_data(ptr)
           return res, cost
-     
+
+     def get_interpolated_planned_path(self) -> tuple[list[Waypoint], float]:
+          ptr = FastRRT.lib.get_interpolated_planned_path(self.__ptr)
+          res, cost = self.__convert_planned_path(ptr)
+          FastRRT.lib.release_planned_path_data(ptr)
+          return res, cost
+
+
      # def interpolate_planned_path_p(self, path: np.ndarray) -> np.ndarray:          
      #      size = path.shape[0]
      #      path = path.reshape(3*size)

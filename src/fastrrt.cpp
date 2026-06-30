@@ -35,12 +35,13 @@ FastRRT::FastRRT(
 }
 */
 
-FastRRT::FastRRT(EgoParams &egoParams) : _graph(CudaGraph(egoParams.width(), egoParams.height())),
+FastRRT::FastRRT(EgoParams &egoParams, bool smartExpansion) : _graph(CudaGraph(egoParams.width(), egoParams.height())),
                                          _start(Waypoint(0, 0, angle::rad(0))),
                                          _goal(Waypoint(0, 0, angle::rad(0))),
                                          _hasPlanData(false),
                                          _headingErrorTolerance(angle::deg(10)),
-                                         _egoParams(egoParams)
+                                         _egoParams(egoParams),
+                                         _smartExpansion(smartExpansion)
 {
     auto [perceptionWidthSize_m, perceptionHeightSize_m] = egoParams.searchFramePhysicalDimensions();
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, egoParams.maxSteeringAngle(), egoParams.vehicleLength_m(), egoParams.maxCurvature());
@@ -89,7 +90,7 @@ void FastRRT::setPlanData(SearchParams &params)
 
 // extern void exportGraph2(CudaGraph *graph, const char *filename);
 
-void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
+void FastRRT::initialize(bool copyIntrinsicCostsFromFrame)
 {
     if (!_hasPlanData)
     {
@@ -112,7 +113,7 @@ void FastRRT::__shrink_search_graph()
         _graph.setType(p.x(), p.z(), GRAPH_TYPE_NODE);
 }
 
-bool FastRRT::loop(bool smart)
+bool FastRRT::planning_loop()
 {
     if (__check_timeout())
     {
@@ -126,7 +127,7 @@ bool FastRRT::loop(bool smart)
     // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
     //_graph.dumpNodesToFile("before_error_1.txt");
-    if (smart)
+    if (_smartExpansion)
     {
         _graph.smartExpansion(_ptr, _maxPathSize, _planningVelocity_m_s, controlExpansion, forceExpansion, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _headingErrorTolerance);
     }
@@ -149,47 +150,10 @@ bool FastRRT::loop(bool smart)
     //_graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
 
-    // #ifdef DIRECT_CONNECTION_ENABLED
-    //     // TODO: link last option to searchframe state
-    //     if (_graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true))
-    //     {
-    //         float4 parent_in_graph = _graph.bestGraphDirectConnectionParent();
-    //         // child
-    //         float4 child_in_expansion_candidates = _graph.bestGraphDirectConnectionChild();
-
-    //         const int parent_x = TO_INT(parent_in_graph.x);
-    //         const int parent_z = TO_INT(parent_in_graph.y);
-    //         const float parent_base_cost = _graph.getCost(parent_x, parent_z);
-
-    //         _graph.add(TO_INT(child_in_expansion_candidates.x), TO_INT(child_in_expansion_candidates.y),
-    //                    angle::rad(child_in_expansion_candidates.z),
-    //                    parent_x, parent_z, parent_in_graph.w + parent_base_cost);
-
-    //         const int child_x = TO_INT(child_in_expansion_candidates.x);
-    //         const int child_z = TO_INT(child_in_expansion_candidates.y);
-    //         const float child_cost = child_in_expansion_candidates.z + parent_base_cost;
-
-    //         _graph.add(_goal.x(), _goal.z(), _goal.heading(), child_x, child_z, child_cost);
-
-    //         // printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
-    //         //        parent_x, parent_z, child_x, child_z, _goal.x(), _goal.z(), child_cost);
-    //     }
-    // #endif
-    //     // if (!_graph.checkGraphIsConsistent()) {
-    //     //     //_graph.dumpNodesToFile("error.txt");
-    //     //     printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
-    //     //     return false;
-    //     // }
-    if (goalReached())
-    {
-        // printf ("shrinking graph...\n");
-        //__shrink_search_graph();
-        return false;
-    }
-    return true;
+    return !goalReached();
 }
 
-bool FastRRT::path_optimize()
+bool FastRRT::path_optimize_loop()
 {
     if (__check_timeout())
         return false;
@@ -251,7 +215,7 @@ std::tuple<std::vector<Waypoint>, float> FastRRT::getPlannedPath()
 
 extern std::vector<Waypoint> interpolate(std::vector<Waypoint> &path, int width, int height);
 
-std::tuple<std::vector<Waypoint>, float> FastRRT::interpolatePlannedPath()
+std::tuple<std::vector<Waypoint>, float> FastRRT::getInterpolatedPlannedPath()
 {
     auto [path, cost] = getPlannedPath();
     return {interpolate(path, _graph.width(), _graph.height()), cost};

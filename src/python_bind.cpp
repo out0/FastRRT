@@ -14,7 +14,8 @@ extern "C"
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
         float *classCosts,
-        float max_curvature)
+        float max_curvature, 
+        bool smartExpansion)
     {
 
         EgoParams params = EgoParams::init(width, height)
@@ -26,7 +27,7 @@ extern "C"
             .withVehicleLength(vehicleLength)
             .build();
 
-        return new FastRRT(params);
+        return new FastRRT(params, smartExpansion);
     }
 
     void fastrrt_destroy(void *ptr)
@@ -69,21 +70,21 @@ extern "C"
         return rrt->goalReached();
     }
 
-    void search_init(void *ptr, bool copyIntrinsicCostsFromFrame)
+    void initialize(void *ptr, bool copyIntrinsicCostsFromFrame)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        rrt->search_init(copyIntrinsicCostsFromFrame);
+        rrt->initialize(copyIntrinsicCostsFromFrame);
     }
-    bool loop(void *ptr, bool smartExpansion)
+    bool planning_loop(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        return rrt->loop(smartExpansion);
+        return rrt->planning_loop();
     }
 
-    bool path_optimize(void *ptr)
+    bool path_optimize_loop(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        return rrt->path_optimize();
+        return rrt->path_optimize_loop();
     }
 
     int *export_graph_nodes(void *ptr)
@@ -143,10 +144,10 @@ extern "C"
         return convertPath(path, cost);
     }
 
-    float *interpolate_planned_path(void *ptr)
+    float *get_interpolated_planned_path(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        auto [path, cost] = rrt->interpolatePlannedPath();
+        auto [path, cost] = rrt->getInterpolatedPlannedPath();
         return convertPath(path, cost);
     }
 

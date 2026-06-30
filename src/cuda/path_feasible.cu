@@ -24,13 +24,17 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
     long pos = computePos(width, x, z);
 
-    if (isAllAngleFeasible(frame, pos))
-    {
-        // if (x == 127 && z == 100)
-        //     printf("computeFeasibleForAngle: feasible for all at %d, %d\n", x, z);
+    bool pre_process_collision_vector = params[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_VECTOR;
+    bool pre_process_collision_dist = pre_process_collision_vector || params[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_DIST;
 
-        return true;
+    if (pre_process_collision_dist)
+    {
+        if (isAllAngleFeasible(frame, pos))
+            return true;
     }
+
+    //TODO: support vector check
+
 
     int lower_bound_ego_x = params[FRAME_PARAM_LOWER_BOUND_X];
     int lower_bound_ego_z = params[FRAME_PARAM_LOWER_BOUND_Z];

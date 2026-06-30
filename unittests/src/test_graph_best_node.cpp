@@ -54,7 +54,10 @@ TEST(TestGraphBestNode, TestBestNode)
     g.add(108, 3, angle::deg(0), 128, 128, 10);
     g.add(158, 3, angle::deg(0), 128, 128, 10);
 
-    int2 p = g.findBestNode(ptr.get(), angle::deg(0), 50.0, 128, 0, 1);
+    long long cost = g.findBestNodeCost(ptr.get(), angle::deg(0), 50.0, 128, 0, 1);
+    ASSERT_TRUE(cost > 0);
+
+    int2 p = g.findBestNode(ptr.get(), angle::deg(0), 50.0, 128, 0, 1, cost);
 
     ASSERT_EQ(p.x, 128);
     ASSERT_EQ(p.y, 3);

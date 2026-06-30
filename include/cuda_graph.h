@@ -13,17 +13,6 @@
 #include <memory>
 #include "graph_node.h"
 
-#define GRAPH_TYPE_NULL 0
-#define GRAPH_TYPE_NODE 1
-#define GRAPH_TYPE_TEMP 2
-#define GRAPH_TYPE_PROCESSING 3
-#define GRAPH_TYPE_COLLISION 4
-#define GRAPH_TYPE_CONNECT_TO_GOAL 5
-
-#define THREADS_IN_BLOCK 256
-
-typedef float3 pose;
-
 class CudaGraph
 {
 private:

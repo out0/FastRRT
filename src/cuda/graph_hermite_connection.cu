@@ -1,5 +1,5 @@
 
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);

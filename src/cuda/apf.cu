@@ -1,7 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 #include <math_constants.h>
 
 #define FORCE_RANGE 5

@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #include <driveless/cuda_params.h>
 #include <driveless/math_utils.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 
 extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);

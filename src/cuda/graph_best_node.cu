@@ -2,7 +2,7 @@
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
 #include <driveless/cuda_ptr.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);

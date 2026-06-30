@@ -1,5 +1,5 @@
 
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 #include <driveless/cuda_params.h>
 #include <bits/algorithmfwd.h>
 

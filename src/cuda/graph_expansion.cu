@@ -1,7 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 #include <fstream>
 
 extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);

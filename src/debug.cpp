@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include "../include/graph.h"
+#include "../include/cuda_graph.h"
 
 void exportGraph2(CudaGraph *graph, const char *filename)
 {

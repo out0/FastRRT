@@ -1,4 +1,4 @@
-#include "../include/graph.h"
+#include "../include/cuda_graph.h"
 #include <driveless/search_frame.h>
 #include "../include/fastrrt.h"
 

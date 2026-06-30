@@ -1,6 +1,6 @@
 #include <curand_kernel.h>
 #include <chrono>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 
 __global__ void __CUDA_KERNEL_setupRandomGenKernel(curandState *state, int size, long long seed){
 

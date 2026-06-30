@@ -1,7 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);

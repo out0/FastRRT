@@ -1,7 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 #include <math_constants.h>
 
 extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);

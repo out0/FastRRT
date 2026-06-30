@@ -1,7 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
-#include "../include/graph.h"
+#include "../include/cuda_graph.h"
 
 inline bool sameNode(int2 a, int2 b)
 {

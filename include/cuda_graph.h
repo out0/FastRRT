@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __GRAPH_DRIVELESS_H
-#define __GRAPH_DRIVELESS_H
+#ifndef __CUDA_GRAPH_DRIVELESS_H
+#define __CUDA_GRAPH_DRIVELESS_H
 
 #include <driveless/search_frame.h>
 #include <driveless/angle.h>
@@ -11,22 +11,7 @@
 #include <curand_kernel.h>
 #include <vector>
 #include <memory>
-
-class GraphNode
-{
-public:
-    int x;
-    int z;
-    float heading_rad{};
-    int nodeType;
-    int parent_x{};
-    int parent_z{};
-    float connectToEndCost{};
-    float cost{};
-
-    GraphNode(int x, int z, int type) : x(x), z(z), nodeType(type) {}
-    GraphNode() : x(0), z(0), heading_rad(0.0f), nodeType(0), parent_x(0), parent_z(0), connectToEndCost(0.0f), cost(0.0f) {}
-};
+#include "graph_node.h"
 
 #define GRAPH_TYPE_NULL 0
 #define GRAPH_TYPE_NODE 1

@@ -12,7 +12,7 @@
 #include <driveless/local_planner.h>
 #include <vector>
 #include <tuple>
-#include "graph.h"
+#include "cuda_graph.h"
 
 class FastRRT : public LocalPlanner
 {

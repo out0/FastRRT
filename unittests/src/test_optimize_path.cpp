@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <cmath>
 #include "test_utils.h"
-#include "../../include/graph.h"
+#include "../../include/cuda_graph.h"
 #include <string>
 #define PHYS_SIZE 34.641016151377535
 

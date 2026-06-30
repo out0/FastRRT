@@ -5,7 +5,7 @@ with open("app/README.md", "r") as f:
 
 setup(
     name="pyfastrrt",
-    version="2.1.0",
+    version="2.1.1",
     description="Fast RRT path planner",
     package_dir={"": "app"},
     packages=find_packages(where="app"),

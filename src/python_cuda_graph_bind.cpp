@@ -42,20 +42,20 @@ extern "C"
     {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-        graph->computeRepulsiveFieldAPF(frame->getCudaPtr(), kr, radius);
+        graph->computeRepulsiveFieldAPF(frame->getPtr(), kr, radius);
     }
 
     void compute_apf_attraction(void *ptr, void *cudaFramePtr, float ka, int goal_x, int goal_z)
     {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-        graph->computeAttractiveFieldAPF(frame->getCudaPtr(), ka, {goal_x, goal_z});
+        graph->computeAttractiveFieldAPF(frame->getPtr(), ka, {goal_x, goal_z});
     }
 
     float *get_intrinsic_costs(void *ptr)
     {
         CudaGraph *graph = (CudaGraph *)ptr;
-        float4 *frameData = graph->getFrameDataPtr()->getCudaPtr();
+        float4 *frameData = graph->getFrameDataPtr()->getPtr();
 
         int width = graph->width();
         int height = graph->height();
@@ -94,7 +94,7 @@ extern "C"
     {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *f = (SearchFrame *)searchFramePtr;
-        graph->derivateNode(f->getCudaPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z);
+        graph->derivateNode(f->getPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z);
     }
 
     void accept_derived_nodes(void *ptr, int goal_x, int goal_z, float goal_heading)

@@ -255,7 +255,7 @@ TEST(TestRRT, TestSearch)
     auto [ipath, icost] = rrt.getPlannedPath();
     auto path2 = rrt.interpolatePlannedPath(ipath);
 
-    exportPathTo(frame.getCudaPtr(), img.cols, img.rows, path2, "output2.png");
+    exportPathTo(frame.getPtr(), img.cols, img.rows, path2, "output2.png");
 
     delete[] ptr;
 }

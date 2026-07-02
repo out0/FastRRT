@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
@@ -44,10 +44,10 @@ __device__ __host__ float computeCost(float3 *frame, int4 *graph, float4 *graphD
 //     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
 //     __CUDA_KERNEL_computeIntrinsicCosts<<<numBlocks, THREADS_IN_BLOCK>>>(
-//         _graph->getCudaPtr(),
-//         _frameData->getCudaPtr(),
-//         searchFrame->getCudaPtr(),
-//         searchFrame->getCudaFrameParamsPtr(),
+//         _graph->getPtr(),
+//         _frameData->getPtr(),
+//         searchFrame->getPtr(),
+//         searchFrame->getFrameParamsPtr(),
 //         searchFrame->getCudaClassCostsPtr());
 
 //     CUDA(cudaDeviceSynchronize());

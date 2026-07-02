@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.30)
 
 project(fastrrt LANGUAGES CXX CUDA VERSION 2.1.1 DESCRIPTION "libfastrrt")
 
+# option(DRIVELESS_CUDA_ENABLED "true" ON)
+
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,10 +22,19 @@ find_package(GSL REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(driveless REQUIRED)
 
-
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
     message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
 endif()
+
+
+get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)
+if(_driveless_defs MATCHES "DRIVELESS_CUDA_ENABLED")
+    message(STATUS "driveless was built with CUDA support")
+else()
+    message(FATAL_ERROR "FastRRT currently requires libdriveless to be compiled with CUDA support")
+endif()
+
+
 
 string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
 list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
@@ -93,6 +105,11 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
         ${CUDAToolkit_INCLUDE_DIRS}
 )
+
+# if(DRIVELESS_CUDA_ENABLED)
+#     target_compile_definitions(${PROJECT_NAME} PRIVATE DRIVELESS_CUDA_ENABLED)
+    
+# endif()
 
 # Link dependencies
 if(CUDA_LIB_JETSON)

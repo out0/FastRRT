@@ -8,7 +8,7 @@ void exportGraph2(CudaGraph *graph, const char *filename)
 {
     cv::Mat cimg = cv::Mat(graph->height(), graph->width(), CV_8UC3, cv::Scalar(0));
 
-    int3 *ptr = graph->getFramePtr()->getCudaPtr();
+    int3 *ptr = graph->getFramePtr()->getPtr();
 
     for (int h = 0; h < graph->height(); h++)
         for (int w = 0; w < graph->width(); w++)

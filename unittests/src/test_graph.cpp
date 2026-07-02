@@ -209,7 +209,7 @@ TEST(TestGraph, TestList)
     CudaGraph g(100, 100);
 
     ASSERT_EQ(0, g.count());
-    std::unordered_map<int, double4> map;
+    std::unordered_map<int, DOUBLE4> map;
 
     g.add(50, 50, angle::rad(0.12), -1, -1, 0);
 
@@ -246,7 +246,7 @@ TEST(TestGraph, TestList)
         ASSERT_TRUE(map.find(key) != map.end());
         angle heading = g.getHeading(res[i].x, res[i].y);
 
-        double4 val = map[convert_to_key(x, z)];
+        DOUBLE4 val = map[convert_to_key(x, z)];
 
         ASSERT_FLOAT_EQ(heading.rad(), val.x);
 
@@ -265,7 +265,7 @@ TEST(TestGraph, TestList_LoadTest)
     CudaGraph g(100, 100);
 
     ASSERT_EQ(0, g.count());
-    std::unordered_map<int, double4> map;
+    std::unordered_map<int, DOUBLE4> map;
 
     g.add(50, 50, angle::rad(0.12), -1, -1, 0);
 
@@ -307,7 +307,7 @@ TEST(TestGraph, TestList_LoadTest)
 
             angle heading = g.getHeading(res[i].x, res[i].y);
 
-            double4 val = map[convert_to_key(x, z)];
+            DOUBLE4 val = map[convert_to_key(x, z)];
 
             ASSERT_FLOAT_EQ(heading.rad(), val.x);
 

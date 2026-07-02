@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 #include <math_constants.h>
 
@@ -40,7 +40,7 @@ unsigned int CudaGraph::__countInRange(int xp, int zp, float radius_sqr)
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount->get());
+    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -99,7 +99,7 @@ std::pair<int2 *, int> CudaGraph::__listNodesInRange(int type, int x, int z, flo
     *listPos = 0;
 
     __CUDA_KERNEL_list_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(), 
+        _graph->getPtr(), 
         _graph->width(), 
         _graph->height(), 
         type,

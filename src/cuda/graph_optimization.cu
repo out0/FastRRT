@@ -1,6 +1,6 @@
 
 #include "../../include/cuda_graph.h"
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include <bits/algorithmfwd.h>
 
 extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
@@ -121,8 +121,8 @@ bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size
     for (int i = 0; i < path_size - 2; i++)
     {
         __check_direct_connection_to_forward_nodes(
-            _graph->getCudaPtr(),
-            _graphData->getCudaPtr(),
+            _graph->getPtr(),
+            _graphData->getPtr(),
             frame,
             _classCosts->get(),
             _searchSpaceParams->get(),

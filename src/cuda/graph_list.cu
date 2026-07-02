@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 #include <math_constants.h>
 
@@ -28,7 +28,7 @@ unsigned int CudaGraph::count(int type)
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), type, _parallelCount->get());
+    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), type, _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -59,7 +59,7 @@ unsigned int CudaGraph::countAll()
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), _parallelCount->get());
+    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -109,7 +109,7 @@ std::pair<int2 *, int> CudaGraph::__listNodes(int type) {
     }
     *listPos = 0;
 
-    __CUDA_KERNEL_list_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), type, cudaResult, listPos);
+    __CUDA_KERNEL_list_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), type, cudaResult, listPos);
     CUDA(cudaDeviceSynchronize());
 
     cudaFreeHost(listPos);
@@ -182,7 +182,7 @@ std::pair<int3 *, int> CudaGraph::__listAllNodes() {
     }
     *listPos = 0;
 
-    __CUDA_KERNEL_list_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), cudaResult, listPos);
+    __CUDA_KERNEL_list_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), cudaResult, listPos);
     CUDA(cudaDeviceSynchronize());
 
 
@@ -227,7 +227,7 @@ bool CudaGraph::checkNewNodesAddedOnTreeExpansion()
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_newNodesAdded->get() = false;
-    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), _newNodesAdded->get());
+    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _graph->width(), _graph->height(), _newNodesAdded->get());
 
     CUDA(cudaDeviceSynchronize());
     

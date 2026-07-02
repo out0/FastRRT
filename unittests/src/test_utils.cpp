@@ -42,7 +42,7 @@ void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path
 {
     cv::Mat cimg = cv::Mat(graph->height(), graph->width(), CV_8UC3, cv::Scalar(0));
 
-    int4 *ptr = graph->getFramePtr()->getCudaPtr();
+    int4 *ptr = graph->getFramePtr()->getPtr();
 
     for (int h = 0; h < graph->height(); h++)
         for (int w = 0; w < graph->width(); w++)

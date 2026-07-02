@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
 extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
@@ -131,7 +131,7 @@ void CudaGraph::computeGraphRegionDensity()
     }
 
     __CUDA_count_nodes_in_density_region<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
+        _graph->getPtr(),
         _searchSpaceParams->get(),
         _region_node_count->get());
 
@@ -252,8 +252,8 @@ void CudaGraph::smartExpansion(float3 *og, float maxPathSize, float velocity_m_s
 
     __CUDA_smart_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _region_node_count->get(),
         _node_mean,

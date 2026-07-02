@@ -7,7 +7,7 @@
 #include <chrono>
 #include <driveless/angle.h>
 #include <driveless/waypoint.h>
-#include <driveless/cuda_frame.h>
+#include <driveless/frame.h>
 #include <driveless/search_params.h>
 #include <driveless/local_planner.h>
 #include <vector>

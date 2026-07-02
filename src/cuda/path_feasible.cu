@@ -1,4 +1,4 @@
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include <driveless/math_utils.h>
 #include <stdio.h>
 

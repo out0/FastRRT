@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 #include <fstream>
 
@@ -80,8 +80,8 @@ void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     __CUDA_accept_derived_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         goal.x,
         goal.y,
         goal_heading,
@@ -94,7 +94,7 @@ void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
 void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
 {
     long pos = computePos(_graph->width(), lastNode.x, lastNode.y);
-    setTypeCuda(_graph->getCudaPtr(), pos, GRAPH_TYPE_NODE);
+    setTypeCuda(_graph->getPtr(), pos, GRAPH_TYPE_NODE);
 }
 
 __device__ __host__ bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value)
@@ -247,8 +247,8 @@ void CudaGraph::expandTree(float3 *og, float maxPathSize, float velocity_m_s,
 
     __CUDA_random_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _classCosts->get(),
         _physicalParams->get(),
@@ -285,8 +285,8 @@ float4 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize,
     long pos = computePos(_graph->width(), x, z);
 
     return expand_node(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         pos, x, z,
         steeringAngle.rad(),
@@ -308,11 +308,11 @@ bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int go
     float maxSteering = _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
     return canConnectToGoalUsingHermite(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
-        search_frame->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
+        search_frame->getPtr(),
         search_frame->getCudaClassCostsPtr(),
-        search_frame->getCudaFrameParamsPtr(),
+        search_frame->getFrameParamsPtr(),
         maxSteering,
         x, z, goal_x, goal_z, goal_heading);
 }

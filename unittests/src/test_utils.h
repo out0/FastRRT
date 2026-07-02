@@ -2,7 +2,7 @@
 #define __TEST_UTILS_DRIVELESS_H
 
 #include "../../include/cuda_graph.h"
-#include <driveless/cuda_ptr.h>
+#include <driveless/cuda_basic.h>
 #include <driveless/search_frame.h>
 #include <gtest/gtest.h>
 

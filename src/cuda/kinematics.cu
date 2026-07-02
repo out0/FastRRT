@@ -2,7 +2,7 @@
 #include <math_constants.h>
 #include <string>
 #include <cuda_runtime.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include <driveless/math_utils.h>
 #include "../../include/cuda_graph.h"
 
@@ -311,8 +311,8 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
     double pathCost = 0;
 
     return check_kinematic_connection_start_end(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _physicalParams->get(),
         _searchSpaceParams->get(),

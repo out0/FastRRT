@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
@@ -114,11 +114,11 @@ void CudaGraph::solveCollisions()
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _searchSpaceParams->get(), numNodesInGraph);
+    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _searchSpaceParams->get(), numNodesInGraph);
 
     cudaDeviceSynchronize();
 
-    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _searchSpaceParams->get());
+    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getPtr(), _searchSpaceParams->get());
 
     cudaDeviceSynchronize();
 

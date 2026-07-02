@@ -1,6 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 #include <math_constants.h>
 
@@ -127,7 +127,7 @@ void CudaGraph::computeRepulsiveFieldAPF(float3 *og, float Kr, int radius)
 
     __CUDA_KERNEL_repulsive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
-        _graphData->getCudaPtr(),
+        _graphData->getPtr(),
         _classCosts->get(),
         _searchSpaceParams->get(),
         _graph->width(),
@@ -143,7 +143,7 @@ void CudaGraph::computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, i
 
     __CUDA_KERNEL_attractive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
-        _graphData->getCudaPtr(),
+        _graphData->getPtr(),
         _classCosts->get(),
         _graph->width(),
         _graph->height(),

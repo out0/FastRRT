@@ -1,19 +1,22 @@
 #pragma once
 
-#ifndef __CUDA_GRAPH_DRIVELESS_H
-#define __CUDA_GRAPH_DRIVELESS_H
+#ifndef __CPU_GRAPH_DRIVELESS_H
+#define __CPU_GRAPH_DRIVELESS_H
 
-#include <driveless/search_frame.h>
+#include <driveless/search_frame_cpu.h>
 #include <driveless/angle.h>
-#include <driveless/cuda_basic.h>
-#include <driveless/frame.h>
-#include <cuda_runtime.h>
-#include <curand_kernel.h>
+#include <driveless/cpu_frame.h>
 #include <vector>
 #include <memory>
+#include <thread>
+#include <atomic>
 #include "graph_node.h"
 
-class CudaGraph
+struct RandState {
+    uint32_t s[4];
+};
+
+class CpuGraph
 {
 private:
     std::shared_ptr<Frame<int4>> _graph;
@@ -22,20 +25,21 @@ private:
     std::shared_ptr<Frame<float3>> _graphGoalDirectConnection;
     bool __checkLimits(int x, int z);
 
-    cptr<float3> _ogCoordinateStart;
-    cptr<unsigned int> _parallelCount;
-    cptr<bool> _newNodesAdded;
-    cptr<bool> _nodeCollision;
-    cptr<bool> _goalReached;
-    cptr<double> _physicalParams;
-    cptr<int> _searchSpaceParams;
-    cptr<unsigned int> _region_node_count;
-    cptr<float> _classCosts;
-    cptr<curandState> _randState;
+    float3 _ogCoordinateStart;
+    unsigned int _parallelCount;
+    std::atomic<bool> _newNodesAdded{false};
+    std::atomic<bool> _nodeCollision{false};
+    std::atomic<bool> _goalReached{false};
+    std::unique_ptr<double[]> _physicalParams;
+    std::unique_ptr<int[]> _searchSpaceParams;
+    std::unique_ptr<unsigned int[]> _region_node_count;
+    std::unique_ptr<float[]> _classCosts;
+    int _classCostsCount{0};
+    std::unique_ptr<RandState[]> _randState;
 
     // find best node for direct connection
-    cptr<float4> _bestNodeDirectConnection;
-    cptr<long long> _bestNodeDirectConnectionCost;
+    std::unique_ptr<float4[]> _bestNodeDirectConnection;
+    long long _bestNodeDirectConnectionCost;
 
     void __initializeRandomGenerator();
     std::pair<int2 *, int> __listNodes(int type);
@@ -52,9 +56,12 @@ private:
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
 
+    std::tuple<int, float> __findFirstDirectConnectionToPos(float3 *og, std::vector<float4> res, int pos, bool isSafeZoneChecked);
+    std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
+
 public:
-    CudaGraph(int width, int height);
-    ~CudaGraph();
+    CpuGraph(int width, int height);
+    ~CpuGraph();
 
     void computeGraphRegionDensity();
 
@@ -64,27 +71,24 @@ public:
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength, float max_curvature);
     double *getPhysicalParams()
     {
-        return _physicalParams->get();
+        return _physicalParams.get();
     }
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     int *getSearchParams()
     {
-        return _searchSpaceParams->get();
+        return _searchSpaceParams.get();
     }
-
-    void setPreProcessCollisionEnable(bool vectorCheck);
-    void setPreProcessDistanceEnable();
 
     void setClassCosts(float *costs, int count);
     void setClassCosts(std::vector<float> costs);
     float *getClassCosts()
     {
-        return _classCosts->get();
+        return _classCosts.get();
     }
     unsigned int getClassCount()
     {
-        return _classCosts->count();
+        return _classCostsCount;
     }
 
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
@@ -93,7 +97,7 @@ public:
     void setCoordinateStart(int x, int z, angle heading);
     void setCoordinateStart(int x, int z);
     void addStart(int x, int z, angle heading);
-    float3 *getCoordinateStart();
+    float3 getCoordinateStart();
 
     void remove(int x, int z);
     void clear();
@@ -115,12 +119,12 @@ public:
     {
         return _graph;
     }
-    std::shared_ptr<Frame<float4>> getFrameDataPtr()
+     std::shared_ptr<Frame<float4>> getFrameDataPtr()
     {
         return _graphData;
     }
 
-    std::shared_ptr<Frame<float3>> getDirectConnectionDataPtr()
+    std::shared_ptr<Frame<float3>>  getDirectConnectionDataPtr()
     {
         return _graphGoalDirectConnection;
     }
@@ -146,7 +150,7 @@ public:
     /// @param z
     /// @param heading
     /// @return final node of the path
-    float4 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
+    int2 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
 
     /// @brief Derivates all nodes in graph with a random steering angle and pathSize, for the specified maxSteeringAngle, maxPathSize, and velocity_m_s.
     /// @param maxSteeringAngle
@@ -159,7 +163,6 @@ public:
     void smartExpansion(float3 *og, float maxPathSize, float velocity_m_s,
                         bool controlExpansion, bool forceExpansion, int2 goal,
                         angle goal_heading, float dist_to_goal_tolerance, angle heading_error_tolerance);
-
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start
     /// @param lastNode
@@ -170,7 +173,7 @@ public:
     /// @return
     void acceptDerivedNodes(int2 goal, float goal_heading);
 
-    /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
+ /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
     /// @param searchFrame
     /// @param radius
     /// @param x
@@ -214,7 +217,7 @@ public:
 
     void solveCollisions();
 
-    bool canConnectToGoal(SearchFrame *frame, int x, int z, int goal_x, int goal_z, int goal_heading);
+    bool canConnectToGoal(SearchFrameCPU *frame, int x, int z, int goal_x, int goal_z, int goal_heading);
 
     /// @brief Returns true if the GRAPH is DAG consistent. This is usually be used for testing and debugging, as bugfree operation should always be DAG consistent
     /// @return
@@ -232,41 +235,40 @@ public:
 
     void dumpNodesToFile(const char *filename);
 
+    /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
+    /// @param frame
+    /// @param goal_x
+    /// @param goal_z
+    /// @param goal_heading
+    void processDirectGoalConnection(SearchFrameCPU *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
 
-    // /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
-    // /// @param frame
-    // /// @param goal_x
-    // /// @param goal_z
-    // /// @param goal_heading
-    // void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
+    /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
+    /// @param x
+    /// @param z
+    /// @return
+    bool isDirectlyConnectedToGoal(int x, int z);
 
-    // /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // bool isDirectlyConnectedToGoal(int x, int z);
+    /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    /// @param x
+    /// @param z
+    /// @return
+    float directConnectionToGoalCost(int x, int z);
 
-    // /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // float directConnectionToGoalCost(int x, int z);
+    /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    /// @param x
+    /// @param z
+    /// @return
+    angle directConnectionToGoalHeading(int x, int z);
 
-    // /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // angle directConnectionToGoalHeading(int x, int z);
+    bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
 
-    // bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
+    float4 bestGraphDirectConnectionParent();
 
-    // float4 bestGraphDirectConnectionParent();
+    float4 bestGraphDirectConnectionChild();
 
-    // float4 bestGraphDirectConnectionChild();
+    std::shared_ptr<float4[]> convertPlannedPath(std::vector<Waypoint> path);
 
-    sptr<float4> convertPlannedPath(std::vector<Waypoint> path);
-
-    bool optimizePathLoop(float3 *frame, sptr<float4> path, int path_size, float distanceToGoalTolerance);
+    bool optimizePathLoop(float3 *og, std::shared_ptr<float4[]> path, int path_size, float distanceToGoalTolerance, bool isSafeZoneChecked);
 };
 
 #endif

@@ -71,7 +71,7 @@ void FastRRT::setPlanData(SearchParams &params)
     this->_hasPlanData = true;
     this->_start = params.start();
     this->_goal = params.goal();
-    this->_ptr = frame->getCudaPtr();
+    this->_ptr = frame->getPtr();
     this->_planningVelocity_m_s = params.velocity_m_s();
     this->_timeout_ms = params.timeout_ms();
     this->_maxPathSize = params.maxPathSize_px();

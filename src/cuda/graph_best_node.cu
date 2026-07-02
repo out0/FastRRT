@@ -1,7 +1,6 @@
 
 #include <driveless/cuda_basic.h>
-#include <driveless/cuda_params.h>
-#include <driveless/cuda_ptr.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
@@ -144,8 +143,8 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
     bestNode.get()->y = -1;
 
     __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),
@@ -170,8 +169,8 @@ long long CudaGraph::findBestNodeCost(float3 *og, angle heading, float radius, i
     *cost.get() = 99999999999;
 
     __CUDA_KERNEL_findBestNodeWithHeading_bestCost<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),
@@ -241,8 +240,8 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
     // printf("check goal: %d, %d\n", goal.x, goal.y);
 
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
+        _graph->getPtr(),
+        _graphData->getPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),

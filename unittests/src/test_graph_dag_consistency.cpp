@@ -5,7 +5,7 @@
 #include <cuda_runtime.h>
 #include <driveless/coord_conversion.h>
 #include <driveless/world_pose.h>
-#include <driveless/cuda_ptr.h>
+#include <driveless/cuda_basic.h>
 #include "test_utils.h"
 
 #define PHYS_SIZE 34.641016151377535

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
-#include <cuda_runtime.h>
+#include <driveless/cuda_basic.h>
 #include "test_utils.h"
 
 extern double2 convert_waypoint_to_map_pose(float3 *ogStart, int2 coord);
@@ -51,7 +51,7 @@ TEST(TestKinematics, ConvertMapPoseWaypointNonOrigin)
 TEST(TestKinematics, TestCheckKinematicPath)
 {
     CudaGraph g(256, 256);
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
         {0},
@@ -76,7 +76,7 @@ TEST(TestKinematics, TestCheckKinematicPath)
 TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
 {
     CudaGraph g(256, 256);
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
         {0},

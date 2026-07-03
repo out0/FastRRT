@@ -2,7 +2,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
-#include <cuda_runtime.h>
+#include <driveless/cuda_basic.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include "test_utils.h"

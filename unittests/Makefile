@@ -3,7 +3,7 @@ all: bin
 bin:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake ..
+	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=ON
 	cd build && make -j$(nproc)
 	mv build/unittest .
 	rm -rf build

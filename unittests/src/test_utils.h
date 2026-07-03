@@ -13,7 +13,11 @@ std::vector<int2> get_planned_path(CudaGraph *graph, float3 *ptr, angle goal_hea
 
 void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path = nullptr);
 
+#ifdef DRIVELESS_CUDA_ENABLED
 CudaPtr<float3> createEmptySearchFrame(int width, int height);
+#else
+std::unique_ptr<float3[]> createEmptySearchFrame(int width, int height);
+#endif
 
 SearchFrame *createEmptySearchFramePtr(int width, int height);
 
@@ -28,6 +32,5 @@ void exportGraphNodesToFile(const std::vector<GraphNode> &nodes, const std::stri
 // Import graph nodes from a file
 std::vector<GraphNode> importGraphNodesFromFile(const std::string &filename);
 
-
-std::vector<GraphNode> importGraphNodesFromString(const std::string& data);
+std::vector<GraphNode> importGraphNodesFromString(const std::string &data);
 #endif

@@ -3,7 +3,6 @@
 #include <chrono>
 #include <thread>
 #include <fstream>
-#include <cuda_runtime.h>
 #include <driveless/coord_conversion.h>
 #include <driveless/world_pose.h>
 #include <driveless/cuda_basic.h>

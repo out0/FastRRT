@@ -6,12 +6,22 @@
 #include <driveless/search_frame.h>
 #include <driveless/angle.h>
 #include <driveless/cuda_basic.h>
+#include <driveless/frame_params.h>
 #include <driveless/frame.h>
-#include <cuda_runtime.h>
-#include <curand_kernel.h>
 #include <vector>
+#include <atomic>
 #include <memory>
 #include "graph_node.h"
+
+#ifdef DRIVELESS_CUDA_ENABLED
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
+#else
+struct RandState
+{
+    uint32_t s[4];
+};
+#endif
 
 class CudaGraph
 {
@@ -22,6 +32,7 @@ private:
     std::shared_ptr<Frame<float3>> _graphGoalDirectConnection;
     bool __checkLimits(int x, int z);
 
+#ifdef DRIVELESS_CUDA_ENABLED
     cptr<float3> _ogCoordinateStart;
     cptr<unsigned int> _parallelCount;
     cptr<bool> _newNodesAdded;
@@ -32,11 +43,25 @@ private:
     cptr<unsigned int> _region_node_count;
     cptr<float> _classCosts;
     cptr<curandState> _randState;
-
     // find best node for direct connection
     cptr<float4> _bestNodeDirectConnection;
     cptr<long long> _bestNodeDirectConnectionCost;
-
+#else
+    float3 _ogCoordinateStart;
+    unsigned int _parallelCount;
+    std::atomic<bool> _newNodesAdded{false};
+    std::atomic<bool> _nodeCollision{false};
+    std::atomic<bool> _goalReached{false};
+    std::unique_ptr<double[]> _physicalParams;
+    std::unique_ptr<int[]> _searchSpaceParams;
+    std::unique_ptr<unsigned int[]> _region_node_count;
+    std::unique_ptr<float[]> _classCosts;
+    int _classCostsCount{0};
+    std::unique_ptr<RandState[]> _randState;
+    // find best node for direct connection
+    std::unique_ptr<float4[]> _bestNodeDirectConnection;
+    long long _bestNodeDirectConnectionCost;
+#endif
     void __initializeRandomGenerator();
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
@@ -64,13 +89,21 @@ public:
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength, float max_curvature);
     double *getPhysicalParams()
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         return _physicalParams->get();
+#else
+        return _physicalParams.get();
+#endif
     }
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     int *getSearchParams()
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         return _searchSpaceParams->get();
+#else
+        return _searchSpaceParams.get();
+#endif
     }
 
     void setPreProcessCollisionEnable(bool vectorCheck);
@@ -80,11 +113,19 @@ public:
     void setClassCosts(std::vector<float> costs);
     float *getClassCosts()
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         return _classCosts->get();
+#else
+        return _classCosts.get();
+#endif
     }
     unsigned int getClassCount()
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         return _classCosts->count();
+#else
+        return _classCostsCount;
+#endif
     }
 
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
@@ -93,7 +134,7 @@ public:
     void setCoordinateStart(int x, int z, angle heading);
     void setCoordinateStart(int x, int z);
     void addStart(int x, int z, angle heading);
-    float3 *getCoordinateStart();
+    float3 getCoordinateStart();
 
     void remove(int x, int z);
     void clear();
@@ -179,7 +220,6 @@ public:
     /// @return
     long long findBestNodeCost(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError);
 
-
     /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
     /// @param searchFrame
     /// @param radius
@@ -232,41 +272,30 @@ public:
 
     void dumpNodesToFile(const char *filename);
 
+    /// @brief Finds the best pair of nodes (graph node + og coordinate) that can directly connect to the goal, accounting for collision detection and max curvature.
+    /// @param og
+    /// @param radius
+    /// @param isSafeZoneChecked
+    /// @return true if a valid direct connection to the goal was found
+    bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
 
-    // /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
-    // /// @param frame
-    // /// @param goal_x
-    // /// @param goal_z
-    // /// @param goal_heading
-    // void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
+    /// @brief Returns the parent node (x, z, heading, cost) of the best direct connection to the goal found by findBestGoalDirectConnection()
+    /// @return
+    float4 bestGraphDirectConnectionParent();
 
-    // /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // bool isDirectlyConnectedToGoal(int x, int z);
+    /// @brief Returns the child node (x, z, heading, cost) of the best direct connection to the goal found by findBestGoalDirectConnection()
+    /// @return
+    float4 bestGraphDirectConnectionChild();
 
-    // /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // float directConnectionToGoalCost(int x, int z);
-
-    // /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
-    // /// @param x
-    // /// @param z
-    // /// @return
-    // angle directConnectionToGoalHeading(int x, int z);
-
-    // bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
-
-    // float4 bestGraphDirectConnectionParent();
-
-    // float4 bestGraphDirectConnectionChild();
-
+#ifdef DRIVELESS_CUDA_ENABLED
     sptr<float4> convertPlannedPath(std::vector<Waypoint> path);
 
     bool optimizePathLoop(float3 *frame, sptr<float4> path, int path_size, float distanceToGoalTolerance);
+#else
+    std::shared_ptr<float4[]> convertPlannedPath(std::vector<Waypoint> path);
+
+    bool optimizePathLoop(float3 *frame, std::shared_ptr<float4[]> path, int path_size, float distanceToGoalTolerance);
+#endif
 };
 
 #endif

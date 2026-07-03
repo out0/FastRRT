@@ -160,17 +160,23 @@ bool FastRRT::path_optimize_loop()
 
     auto [path, cost] = getPlannedPath();
 
+    #ifdef DRIVELESS_CUDA_ENABLED
     sptr<float4> optim_path = _graph.convertPlannedPath(path);
-
-    // printf("[path optimize] size = %ld\n", res.size());
-
-    // TODO: check if the distances are trully checked (last bool)
-
+    
     return _graph.optimizePathLoop(
         _ptr,
         optim_path,
         path.size(),
         _distToGoalTolerance);
+    #else
+        std::shared_ptr<float4[]> optim_path = _graph.convertPlannedPath(path);
+    
+    return _graph.optimizePathLoop(
+        _ptr,
+        optim_path,
+        path.size(),
+        _distToGoalTolerance);
+    #endif
 }
 
 bool FastRRT::goalReached()
@@ -251,14 +257,14 @@ extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Wayp
 
 std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal)
 {
-    float3 *start = _graph.getCoordinateStart();
+    float3 start = _graph.getCoordinateStart();
     return interpolateHermiteCurve(
         _graph.width(),
         _graph.height(),
         Waypoint(
-            static_cast<int>((*start).x),
-            static_cast<int>((*start).y),
-            angle::rad(static_cast<float>((*start).z))),
+            static_cast<int>(start.x),
+            static_cast<int>(start.y),
+            angle::rad(static_cast<float>(start.z))),
         goal);
 }
 

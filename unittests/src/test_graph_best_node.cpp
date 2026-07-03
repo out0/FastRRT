@@ -3,7 +3,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
-#include <cuda_runtime.h>
+#include <driveless/cuda_basic.h>
 #include "test_utils.h"
 
 #define PHYS_SIZE 34.641016151377535
@@ -11,7 +11,7 @@
 TEST(TestGraphBestNode, TestGoalReached)
 {
     CudaGraph g(256, 256);
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
     std::vector<float> costs = {
                    {0},
                    {1},
@@ -36,7 +36,7 @@ TEST(TestGraphBestNode, TestBestNode)
 {
     CudaGraph g(256, 256);
     
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
                    {0},

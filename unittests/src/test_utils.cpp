@@ -87,6 +87,7 @@ void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path
     cv::imwrite(filename, cimg);
 }
 
+#ifdef DRIVELESS_CUDA_ENABLED
 CudaPtr<float3> createEmptySearchFrame(int width, int height)
 {
     CudaPtr<float3> ptr(width * height);
@@ -99,6 +100,21 @@ CudaPtr<float3> createEmptySearchFrame(int width, int height)
     }
     return ptr;
 }
+#else
+std::unique_ptr<float3[]> createEmptySearchFrame(int width, int height)
+{
+    auto ptr = std::make_unique<float3[]>(width * height);
+    long size = height * width;
+    for (int i = 0; i < size; i++)
+    {
+        ptr.get()[i].x = 0;
+        ptr.get()[i].y = 0;
+        ptr.get()[i].z = 0;
+    }
+    return ptr;
+}
+
+#endif
 
 SearchFrame *createEmptySearchFramePtr(int width, int height)
 {

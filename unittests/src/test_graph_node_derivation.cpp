@@ -2,7 +2,6 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
-#include <cuda_runtime.h>
 #include <driveless/coord_conversion.h>
 #include <driveless/world_pose.h>
 #include <driveless/cuda_basic.h>
@@ -21,7 +20,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationInXcoord)
     const int pathSize = 49;
     const float velocity = 1.0;
 
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 128, 128);
     graph->acceptDerivedNodes({0, 0}, 0.0);
@@ -62,7 +61,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationInYcoord)
     const int pathSize = 49;
     const float velocity = 1.0;
 
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 128, 128);
     graph->acceptDerivedNodes({0, 0}, 0.0);
@@ -97,7 +96,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationWithDelocatedLocalPosition)
     const int pathSize = 49;
     const float velocity = 1.0;
 
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 50, 200);
     graph->acceptDerivedNodes({0, 0}, 0.0);
@@ -199,7 +198,7 @@ TEST(TestGraphNodeDerivation, CurvyNodeDerivation)
     const int pathSize = 15;
     const float velocity = 1.0;
 
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
 
     for (int a = -180; a <= 180; a+=1)
     {

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
-#include <cuda_runtime.h>
+#include <driveless/cuda_basic.h>
 #include "test_utils.h"
 
 int convert_to_point(int x, int z)
@@ -112,20 +112,22 @@ TEST(TestGraph, TestAddClearTemporary)
 TEST(TestGraph, TestCoordinateStart)
 {
     CudaGraph g(100, 200);
-    float3 *p = g.getCoordinateStart();
-    ASSERT_EQ(50, static_cast<int>(p->x));
-    ASSERT_EQ(100, static_cast<int>(p->y));
-    ASSERT_EQ(angle::deg(0), angle::rad(p->z));
+    float3 p = g.getCoordinateStart();
+    ASSERT_EQ(50, static_cast<int>(p.x));
+    ASSERT_EQ(100, static_cast<int>(p.y));
+    ASSERT_EQ(angle::deg(0), angle::rad(p.z));
     
     g.setCoordinateStart(30, 30);
-    ASSERT_EQ(30, static_cast<int>(p->x));
-    ASSERT_EQ(30, static_cast<int>(p->y));
-    ASSERT_EQ(angle::deg(0), angle::rad(p->z));
+    p = g.getCoordinateStart();
+    ASSERT_EQ(30, static_cast<int>(p.x));
+    ASSERT_EQ(30, static_cast<int>(p.y));
+    ASSERT_EQ(angle::deg(0), angle::rad(p.z));
 
     g.setCoordinateStart(40, 50, angle::deg(14.5));
-    ASSERT_EQ(40, static_cast<int>(p->x));
-    ASSERT_EQ(50, static_cast<int>(p->y));
-    ASSERT_EQ(angle::deg(14.5), angle::rad(p->z));
+    p = g.getCoordinateStart();
+    ASSERT_EQ(40, static_cast<int>(p.x));
+    ASSERT_EQ(50, static_cast<int>(p.y));
+    ASSERT_EQ(angle::deg(14.5), angle::rad(p.z));
 }
 
 

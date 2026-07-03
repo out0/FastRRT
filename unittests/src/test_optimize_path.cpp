@@ -121,7 +121,7 @@ float sumPathTotalCost(std::vector<int2> path, CudaGraph *g)
 TEST(TestOptimizeGraphs, TestOptimizeGraph)
 {
     CudaGraph g(256, 256);
-    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
+    auto ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
                    {0},

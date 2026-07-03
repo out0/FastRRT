@@ -1,48 +1,57 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.28)
 
-project(fastrrt LANGUAGES CXX CUDA VERSION 2.1.1 DESCRIPTION "libfastrrt")
+project(fastrrt LANGUAGES CXX VERSION 2.1.1 DESCRIPTION "libfastrrt")
 
-# option(DRIVELESS_CUDA_ENABLED "true" ON)
+find_package(driveless REQUIRED)
+get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)
+if(_driveless_defs MATCHES "DRIVELESS_CUDA_ENABLED")
+    message(STATUS "driveless was built with CUDA support")
+    set(DRIVELESS_CUDA_ENABLED ON)
+else()
+    message(WARNING "driveless was built without CUDA support")
+    set(DRIVELESS_CUDA_ENABLED OFF)
+endif()
 
+
+if (DRIVELESS_CUDA_ENABLED)
+    # Optional: explicitly set NVCC if needed
+    set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+    enable_language(CUDA)
+    set(CMAKE_CUDA_ARCHITECTURES all-major)
+    find_package(CUDAToolkit REQUIRED)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#set(CMAKE_CUDA_ARCHITECTURES all-major)
-
-# Optional: explicitly set NVCC if needed
-set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
 
 include(GNUInstallDirs)
 
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
-find_package(CUDAToolkit REQUIRED)
-find_package(driveless REQUIRED)
+
+if (DRIVELESS_CUDA_ENABLED)
+    find_package(CUDAToolkit REQUIRED)
+endif()
+
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
     message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
 endif()
 
 
-get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)
-if(_driveless_defs MATCHES "DRIVELESS_CUDA_ENABLED")
-    message(STATUS "driveless was built with CUDA support")
-else()
-    message(FATAL_ERROR "FastRRT currently requires libdriveless to be compiled with CUDA support")
+
+
+if (DRIVELESS_CUDA_ENABLED)
+    string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+    list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
+    list(GET CUDA_VER_LIST 1 CUDA_MINOR)
+
+    add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
+    add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
 endif()
-
-
-
-string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
-list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
-list(GET CUDA_VER_LIST 1 CUDA_MINOR)
-
-add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
-add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
-
 
 option(CUDA_LIB_JETSON "true" OFF)
 
@@ -63,32 +72,65 @@ pkg_search_module(GLIB REQUIRED glib-2.0)
 link_directories(/usr/local/lib/driveless)
 # Library sources
 
-add_library(
-  ${CMAKE_PROJECT_NAME} SHARED
-  src/cuda/kinematics.cu
-  src/cuda/path_feasible.cu
-  src/cuda/random_number_gen.cu
-  src/cuda/graph.cu
-  src/cuda/graph_list.cu
-  src/cuda/graph_best_node.cu
-  src/cuda/graph_optimization.cu
-  src/cuda/graph_expansion.cu
-  src/cuda/graph_nodes_in_range.cu
-  src/cuda/graph_costs.cu
-  src/cuda/apf.cu
-  src/cuda/graph_expansion_search_zones.cu
-  src/cuda/graph_collision.cu
-  src/cuda/graph_hermite_connection.cu
-  src/cuda/graph_direct_goal_connection.cu
-  #src/cuda/graph_check_goal_reached.cu
-  src/fastrrt.cpp
-  src/python_bind.cpp
-  src/python_cuda_graph_bind.cpp
-  src/interpolation.cpp
-  src/graph_check_dag_consistency.cpp
-  #src/debug.cpp
-)
+if (DRIVELESS_CUDA_ENABLED)
+    add_library(
+    ${CMAKE_PROJECT_NAME} SHARED
+    src/cuda/kinematics.cu
+    src/cuda/path_feasible.cu
+    src/cuda/random_number_gen.cu
+    src/cuda/graph.cu
+    src/cuda/graph_list.cu
+    src/cuda/graph_best_node.cu
+    src/cuda/graph_optimization.cu
+    src/cuda/graph_expansion.cu
+    src/cuda/graph_nodes_in_range.cu
+    src/cuda/graph_costs.cu
+    src/cuda/graph_clear.cu
+    src/cuda/apf.cu
+    src/cuda/graph_expansion_search_zones.cu
+    src/cuda/graph_collision.cu
+    src/cuda/graph_hermite_connection.cu
+    src/cuda/graph_direct_goal_connection.cu
+    #src/cuda/graph_check_goal_reached.cu
+    src/fastrrt.cpp
+    src/python_bind.cpp
+    src/python_cuda_graph_bind.cpp
+    src/interpolation.cpp
+    src/graph_check_dag_consistency.cpp
+    #src/debug.cpp
+    )
+else()
+    set_source_files_properties(${PROJECT_NAME}
+        src/cuda/graph.cu
+        PROPERTIES LANGUAGE CXX)
 
+
+   add_library(
+    ${CMAKE_PROJECT_NAME} SHARED
+    src/cpu/kinematics.cpp
+    src/cpu/path_feasible.cpp
+    src/cpu/random_number_gen.cpp
+    src/cuda/graph.cu
+    src/cpu/graph_list.cpp
+    src/cpu/graph_best_node.cpp
+    src/cpu/graph_optimization.cpp
+    src/cpu/graph_expansion.cpp
+    src/cpu/graph_nodes_in_range.cpp
+    src/cpu/graph_costs.cpp
+    src/cpu/apf.cpp
+    src/cpu/graph_expansion_search_zones.cpp
+    src/cpu/graph_collision.cpp
+    src/cpu/graph_hermite_connection.cpp
+    #src/cuda/graph_check_goal_reached.cu
+    src/fastrrt.cpp
+    src/python_bind.cpp
+    src/python_cuda_graph_bind.cpp
+    src/interpolation.cpp
+    src/graph_check_dag_consistency.cpp
+    #src/debug.cpp
+    )
+
+endif()
 # Properties for CUDA shared lib
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

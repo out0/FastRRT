@@ -3,7 +3,7 @@
 #include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
-extern __device__ __host__ int getTypeCpu(int4 *graph, long pos);
+extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
 
 class CountElementsInGraphProcessor : public ParallelProcessor
 {
@@ -126,7 +126,7 @@ public:
         int z = pos / _width;
         int x = pos - z * _width;
 
-        if (getTypeCpu(_graph, pos) == _type)
+        if (getTypeCuda(_graph, pos) == _type)
         {
             int store_pos = currentPos.fetch_add(1);
             _res[store_pos].x = x;
@@ -187,12 +187,12 @@ public:
         int z = pos / _width;
         int x = pos - z * _width;
 
-        if (getTypeCpu(_graph, pos) != GRAPH_TYPE_NULL)
+        if (getTypeCuda(_graph, pos) != GRAPH_TYPE_NULL)
         {
             int store_pos = currentPos.fetch_add(1);
             _res[store_pos].x = x;
             _res[store_pos].y = z;
-            _res[store_pos].z = getTypeCpu(_graph, pos);
+            _res[store_pos].z = getTypeCuda(_graph, pos);
         }
     }
 };
@@ -248,7 +248,7 @@ public:
         if (pos >= _max)
             return;
 
-        if (getTypeCpu(_graph, pos) == GRAPH_TYPE_TEMP)
+        if (getTypeCuda(_graph, pos) == GRAPH_TYPE_TEMP)
         {
            _added = true;
         }

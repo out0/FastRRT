@@ -75,26 +75,8 @@ __device__ __host__ void __check_direct_connection_to_forward_nodes(int4 *graph,
     }
 }
 
-// __global__ void __check_direct_connection_on_all_path_nodes(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams,
-//                                                             float4 *path, float4 *path_optim_data, int path_pos, int path_size, float max_curvature, bool isSafeZoneChecked, bool isDistanceToGoalProcessed)
-// {
-//     int pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-//     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
-//     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
-
-//     if (pos >= width * height)
-//         return;
-
-//     if (getTypeCuda(graph, pos) != GRAPH_TYPE_NODE)
-//         return;
-
-//     int z = pos / width;
-//     int x = pos - z * width;
-// }
-
-sptr<float4> CudaGraph::convertPlannedPath(std::vector<Waypoint> path)
-{
+#ifdef DRIVELESS_CUDA_ENABLED
+sptr<float4> CudaGraph::convertPlannedPath(std::vector<Waypoint> path) {
     sptr<float4> res = std::make_shared<CudaPtr<float4>>(path.size());
     int pos = 0;
     for (auto p : path)
@@ -108,18 +90,45 @@ sptr<float4> CudaGraph::convertPlannedPath(std::vector<Waypoint> path)
     }
     return res;
 }
-
-bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size, float distanceToGoalTolerance)
+#else
+std::shared_ptr<float4[]> CudaGraph::convertPlannedPath(std::vector<Waypoint> path)
 {
-    cptr<float4> pathData = std::make_unique<CudaPtr<float4>>(path_size);
-    float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
+    std::shared_ptr<float4[]> res(new float4[path.size()], std::default_delete<float4[]>());
+    int pos = 0;
+    for (auto p : path)
+    {
+        res.get()[pos].x = path[pos].x();
+        res.get()[pos].y = path[pos].z();
+        res.get()[pos].z = path[pos].heading().rad();
+        res.get()[pos].w = getCost(path[pos].x(), path[pos].z());
+        // printf ("path %d, %d pos %d, cost %f\n", path[pos].x(), path[pos].z(), pos, res->get()[pos].w);
+        pos++;
+    }
+    return res;
+}
+#endif
 
+#ifdef DRIVELESS_CUDA_ENABLED
+bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size, float distanceToGoalTolerance)
+#else
+bool CudaGraph::optimizePathLoop(float3 *frame, std::shared_ptr<float4[]> path, int path_size, float distanceToGoalTolerance)
+#endif
+{
+#ifdef DRIVELESS_CUDA_ENABLED
+    cptr<float4> pathData = std::make_unique<CudaPtr<float4>>(path_size);
+    xxx const float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
     const bool preProcessCollisionDistance = preProcessedCollisionDistance(_searchSpaceParams->get());
     const bool preProcessDistanceToGoal = preProcessedDistanceToGoal(_searchSpaceParams->get());
-
+#else
+    float max_curvature = _physicalParams.get()[PHYSICAL_MAX_CURVATURE];
+    const bool preProcessCollisionDistance = preProcessedCollisionDistance(_searchSpaceParams.get());
+    const bool preProcessDistanceToGoal = preProcessedDistanceToGoal(_searchSpaceParams.get());
+    std::shared_ptr<float4[]> pathData(new float4[path_size], std::default_delete<float4[]>());
+#endif
 
     for (int i = 0; i < path_size - 2; i++)
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         __check_direct_connection_to_forward_nodes(
             _graph->getPtr(),
             _graphData->getPtr(),
@@ -131,38 +140,38 @@ bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size
             i,
             path_size,
             max_curvature,
-             preProcessCollisionDistance,
+            preProcessCollisionDistance,
             preProcessDistanceToGoal);
 
         int nextPos = TO_INT(pathData->get()[i].y);
-        // if (pathData->get()[i].x == 1.0)
-        // {
-        //     printf("best gain for node %d, %d connected to %d, %d with cost %f is to re-connected to %d, %d with new cost %f (gain %f)\n",
-        //            TO_INT(path->get()[i].x),
-        //            TO_INT(path->get()[i].y),
-        //            TO_INT(path->get()[i + 1].x),
-        //            TO_INT(path->get()[i + 1].y),
-        //            path->get()[i + 1].w,
-        //            TO_INT(path->get()[nextPos].x),
-        //            TO_INT(path->get()[nextPos].y),
-        //            pathData->get()[i].z,
-        //            pathData->get()[i].w);
-        // }
-        // else
-        // {
-        //     printf("node %d, %d must remain connected to %d, %d with cost %f\n", TO_INT(path->get()[i].x),
-        //            TO_INT(path->get()[i].y),
-        //            TO_INT(path->get()[i + 1].x),
-        //            TO_INT(path->get()[i + 1].y),
-        //            path->get()[i + 1].w);
-        // }
+#else
+        __check_direct_connection_to_forward_nodes(
+            _graph->getPtr(),
+            _graphData->getPtr(),
+            frame,
+            _classCosts.get(),
+            _searchSpaceParams.get(),
+            path.get(),
+            pathData.get(),
+            i,
+            path_size,
+            max_curvature,
+            preProcessCollisionDistance,
+            preProcessDistanceToGoal);
+
+        int nextPos = TO_INT(pathData.get()[i].y);
+#endif
     }
 
     float maxGain = -1;
     int maxGainPos = -1;
     for (int i = 0; i < path_size - 2; i++)
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         float4 p = pathData->get()[i];
+#else
+        float4 p = pathData.get()[i];
+#endif
         if (p.x == 0.0)
             continue;
 
@@ -176,44 +185,59 @@ bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size
     if (maxGainPos < 0)
         return false;
 
+#ifdef DRIVELESS_CUDA_ENABLED
     float4 p = pathData->get()[maxGainPos];
     int next_pos = TO_INT(p.y);
     int next_x = path->get()[next_pos].x;
     int next_z = path->get()[next_pos].y;
-    // printf("best gain: is to change %d, %d connected to %d, %d with cost %f, reconnecting to %d, %d with new cost %f\n",
-    //        TO_INT(path->get()[maxGainPos].x),
-    //        TO_INT(path->get()[maxGainPos].y),
-    //        TO_INT(path->get()[maxGainPos + 1].x),
-    //        TO_INT(path->get()[maxGainPos + 1].y),
-    //        path->get()[maxGainPos + 1].w,
-    //        next_x, next_z, p.z);
+#else
+    float4 p = pathData.get()[maxGainPos];
+    int next_pos = TO_INT(p.y);
+    int next_x = path.get()[next_pos].x;
+    int next_z = path.get()[next_pos].y;
+#endif
 
     if (maxGainPos != -1 && next_pos > maxGainPos + 1)
     {
-
+#ifdef DRIVELESS_CUDA_ENABLED
         // storing the best cost for the last node before removal/path rewrite
         path->get()[next_pos].w = pathData->get()[maxGainPos].z;
+#else
+        path.get()[next_pos].w = pathData.get()[maxGainPos].z;
+#endif
 
         // Remove elements between maxGainPos and next_pos (exclusive)
         // Shift elements left
         int numToRemove = next_pos - maxGainPos - 1;
         for (int i = maxGainPos + 1; i + numToRemove < path_size; ++i)
         {
+#ifdef DRIVELESS_CUDA_ENABLED
             path->get()[i] = path->get()[i + numToRemove];
+#else
+            path.get()[i] = path.get()[i + numToRemove];
+#endif
         }
         path_size -= numToRemove;
     }
 
     clear();
 
+#ifdef DRIVELESS_CUDA_ENABLED
     float4 parent = path->get()[0];
+#else
+    float4 parent = path.get()[0];
+#endif
     int parent_x = TO_INT(parent.x);
     int parent_z = TO_INT(parent.y);
     add(parent_x, parent_z, angle::rad(parent.z), -1, -1, parent.w);
 
     for (int i = 1; i < path_size; i++)
     {
+#ifdef DRIVELESS_CUDA_ENABLED
         float4 child = path->get()[i];
+#else
+        float4 child = path.get()[i];
+#endif
         add(TO_INT(child.x), TO_INT(child.y), angle::rad(child.z), parent_x, parent_z, child.w);
         parent = child;
         parent_x = TO_INT(parent.x);
@@ -221,22 +245,4 @@ bool CudaGraph::optimizePathLoop(float3 *frame, sptr<float4> path, int path_size
     }
 
     return true;
-
-    // // Print the path in the requested format
-    // printf("(");
-    // for (int i = 0; i < path_size; ++i) {
-    //     printf("%d, %d", TO_INT(path->get()[i].x), TO_INT(path->get()[i].y));
-    //     if (i < path_size - 1) {
-    //         printf(") --> (");
-    //     }
-    // }
-    // printf(")\n");
 }
-
-// int size = _graph->width() * _graph->height();
-// int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
-//     __CUDA_check_direct_connection_forward_nodes<<<numBlocks, THREADS_IN_BLOCK>>> (
-//         ,
-//     )
-// CUDA(cudaDeviceSynchronize());

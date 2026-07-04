@@ -41,6 +41,10 @@ extern __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData,
                                                               float distance_to_goal_tolerance,
                                                               float max_heading_error);
 
+extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                              float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart,
+                                              float velocity_m_s, bool *nodeCollision, bool ignore_collision);
+
 inline bool checkEquals(int2 &a, int2 &b)
 {
     return a.x == b.x && a.y == b.y;
@@ -87,62 +91,6 @@ void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
     setTypeCuda(_graph->getPtr(), pos, GRAPH_TYPE_NODE);
 }
 
-bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value)
-{
-    int expected = expected_value;
-    return __atomic_compare_exchange_n(&graph[pos].z, &expected, new_value, false,
-                                       __ATOMIC_SEQ_CST, // success memory order
-                                       __ATOMIC_SEQ_CST  // failure memory order
-    );
-}
-
-int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
-                 float pathSize, float *classCosts, int *searchParams, double *physicalParams,
-                 float3 ogStart, float velocity_m_s, bool *nodeCollision)
-{
-    int width = searchParams[FRAME_PARAM_WIDTH];
-
-    float heading = getHeadingCuda(graphData, pos);
-
-    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle_rad, pathSize, velocity_m_s);
-
-    // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
-
-    if (end.x < 0 || end.y < 0)
-        return {-1, -1};
-
-    int end_x = TO_INT(end.x);
-    int end_z = TO_INT(end.y);
-
-    if (end_x == ogStart.x && end_z == ogStart.y)
-    {
-        return {-1, -1};
-    }
-
-    float end_cost = end.z;
-    float end_heading = end.w;
-
-    long end_pos = computePos(width, end_x, end_z);
-
-    if (end_pos == pos)
-        return {-1, -1};
-
-    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP))
-    {
-        // A new node is being added to the graph
-        incNodeDeriveCount(graph, pos);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-    }
-
-    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION))
-    {
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        *nodeCollision = true;
-        decNodeDeriveCount(graph, pos);
-    }
-
-    return {TO_INT(end.x), TO_INT(end.y)};
-}
 
 class NodeExpansionProcess : public ParallelProcessor
 {

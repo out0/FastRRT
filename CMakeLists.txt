@@ -91,7 +91,7 @@ if (DRIVELESS_CUDA_ENABLED)
     src/cuda/graph_collision.cu
     src/cuda/graph_hermite_connection.cu
     src/cuda/graph_direct_goal_connection.cu
-    #src/cuda/graph_check_goal_reached.cu
+    src/cuda/graph_node_expansion.cu
     src/fastrrt.cpp
     src/python_bind.cpp
     src/python_cuda_graph_bind.cpp
@@ -100,10 +100,12 @@ if (DRIVELESS_CUDA_ENABLED)
     #src/debug.cpp
     )
 else()
-    set_source_files_properties(${PROJECT_NAME}
+    set_source_files_properties(${CMAKE_PROJECT_NAME}
         src/cuda/graph.cu
+        src/cuda/graph_direct_goal_connection.cu
+        src/cuda/graph_optimization.cu
+        src/cuda/graph_node_expansion.cu
         PROPERTIES LANGUAGE CXX)
-
 
    add_library(
     ${CMAKE_PROJECT_NAME} SHARED
@@ -113,10 +115,10 @@ else()
     src/cuda/graph.cu
     src/cpu/graph_list.cpp
     src/cpu/graph_best_node.cpp
-    src/cpu/graph_optimization.cpp
     src/cpu/graph_expansion.cpp
     src/cpu/graph_nodes_in_range.cpp
     src/cpu/graph_costs.cpp
+    src/cpu/graph_clear.cpp
     src/cpu/apf.cpp
     src/cpu/graph_expansion_search_zones.cpp
     src/cpu/graph_collision.cpp
@@ -127,7 +129,9 @@ else()
     src/python_cuda_graph_bind.cpp
     src/interpolation.cpp
     src/graph_check_dag_consistency.cpp
-    #src/debug.cpp
+    src/cuda/graph_direct_goal_connection.cu
+    src/cuda/graph_optimization.cu
+    src/cuda/graph_node_expansion.cu
     )
 
 endif()

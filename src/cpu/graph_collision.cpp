@@ -1,10 +1,10 @@
 #include "../../include/cuda_graph.h"
 #include <driveless/cpu_parallel_processor.h>
 
-extern int2 getParentCpu(int4 *graph, long pos);
+extern int2 getParentCuda(int4 *graph, long pos);
 extern long computePos(int width, int x, int z);
-extern void setTypeCpu(int4 *graph, long pos, int type);
-extern int getTypeCpu(int4 *graph, long pos);
+extern void setTypeCuda(int4 *graph, long pos, int type);
+extern int getTypeCuda(int4 *graph, long pos);
 extern void incNodeDeriveCount(int4 *graph, long pos);
 extern void decNodeDeriveCount(int4 *graph, long pos);
 extern void setNodeDeriveCount(int4 *graph, long pos, int count);
@@ -35,7 +35,7 @@ public:
         int width = _params[FRAME_PARAM_WIDTH];
         int height = _params[FRAME_PARAM_HEIGHT];
 
-        int ptype = getTypeCpu(_graph, pos);
+        int ptype = getTypeCuda(_graph, pos);
 
         // printf ("%d\n", ptype);
 
@@ -50,19 +50,19 @@ public:
 
         while (i-- > 0)
         {
-            int2 parent = getParentCpu(_graph, curr);
+            int2 parent = getParentCuda(_graph, curr);
 
             if (parent.x == -1 && parent.y == -1)
                 return;
 
             long next = computePos(width, parent.x, parent.y);
 
-            int typeNext = getTypeCpu(_graph, next);
+            int typeNext = getTypeCuda(_graph, next);
 
             if (typeNext == GRAPH_TYPE_COLLISION || typeNext == GRAPH_TYPE_NULL)
             {
                 // printf("[collision] found collision for %d, %d in node %d, %d\n", x, z, parent.x, parent.y);
-                setTypeCpu(_graph, pos, GRAPH_TYPE_NULL);
+                setTypeCuda(_graph, pos, GRAPH_TYPE_NULL);
                 return;
             }
 
@@ -73,7 +73,7 @@ public:
         {
             // cyclic ref.
             // printf("%d, %d is in cyclic ref\n", x, z);
-            setTypeCpu(_graph, pos, GRAPH_TYPE_NULL);
+            setTypeCuda(_graph, pos, GRAPH_TYPE_NULL);
         }
     }
 };
@@ -105,12 +105,12 @@ public:
         if (pos >= width * height)
             return;
 
-        if (getTypeCpu(_graph, pos) == GRAPH_TYPE_COLLISION)
+        if (getTypeCuda(_graph, pos) == GRAPH_TYPE_COLLISION)
         {
-            setTypeCpu(_graph, pos, GRAPH_TYPE_NODE);
+            setTypeCuda(_graph, pos, GRAPH_TYPE_NODE);
             setNodeDeriveCount(_graph, pos, 0);
 
-            int2 parent = getParentCpu(_graph, pos);
+            int2 parent = getParentCuda(_graph, pos);
             long pos_parent = computePos(width, parent.x, parent.y);
             incNodeDeriveCount(_graph, pos_parent);
         }

@@ -5,9 +5,9 @@
 #include "atomic_utils.h"
 
 extern bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
-extern float getCostCpu(float4 *graphData, long pos);
+extern float getCostCuda(float4 *graphData, long pos);
 extern long computePos(int width, int x, int z);
-extern float getHeadingCpu(float4 *graphData, long pos);
+extern float getHeadingCuda(float4 *graphData, long pos);
 
 #define K1 1
 #define K2 3
@@ -82,7 +82,7 @@ public:
             return;
         }
 
-        float heading = getHeadingCpu(_graphData, pos);
+        float heading = getHeadingCuda(_graphData, pos);
 
         if (abs(heading - _targetHeading_rad) > _maxHeadingError_rad)
         {
@@ -96,7 +96,7 @@ public:
             return;
         }
 
-        long long cost = __compute_cost_findBestNode(dist, heading, getCostCpu(_graphData, pos));
+        long long cost = __compute_cost_findBestNode(dist, heading, getCostCuda(_graphData, pos));
 
         atomicMin(_bestCost, cost);
     }
@@ -171,7 +171,7 @@ public:
         if (dist > _searchRadius)
             return;
 
-        float heading = getHeadingCpu(_graphData, pos);
+        float heading = getHeadingCuda(_graphData, pos);
 
         if (abs(heading - _targetHeading_rad) > _maxHeadingError_rad)
             return;
@@ -181,7 +181,7 @@ public:
             return;
         }
 
-        long long cost = __compute_cost_findBestNode(dist, heading, getCostCpu(_graphData, pos));
+        long long cost = __compute_cost_findBestNode(dist, heading, getCostCuda(_graphData, pos));
 
         if (cost == _bestCost)
         {
@@ -295,7 +295,7 @@ public:
         if (compute_euclidean_2d_dist(s, e) > _distToGoalTolerance)
             return;
 
-        float heading = getHeadingCpu(_graphData, pos);
+        float heading = getHeadingCuda(_graphData, pos);
 
         if (abs(heading - _goalHeading) <= _maxHeadingError)
             _goalReached = true;

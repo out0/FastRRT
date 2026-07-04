@@ -38,6 +38,9 @@ extern __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData,
 extern __device__ __host__ bool preProcessedCollisionDistance(int *searchParams);
 extern __device__ __host__ bool preProcessedCollisionVector(int *searchParams);
 extern __device__ __host__ bool preProcessedDistanceToGoal(int *searchParams);
+extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                              float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart,
+                                              float velocity_m_s, bool *nodeCollision, bool ignore_collision);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
@@ -97,71 +100,6 @@ void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
     setTypeCuda(_graph->getPtr(), pos, GRAPH_TYPE_NODE);
 }
 
-__device__ __host__ bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value)
-{
-
-#ifdef __CUDA_ARCH__
-    return atomicCAS(&(graph[pos].z), expected_value, new_value) == expected_value;
-#else
-    if (graph[pos].z == expected_value)
-    {
-        graph[pos].z = new_value;
-        return true;
-    }
-    return false;
-#endif
-}
-
-__device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
-                                       float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
-                                       bool ignore_collision)
-{
-    int width = searchParams[FRAME_PARAM_WIDTH];
-
-    float heading = getHeadingCuda(graphData, pos);
-
-    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogCoordinateStart, {x, z}, steeringAngle_rad, pathSize, velocity_m_s);
-
-    // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
-
-    if (end.x < 0 || end.y < 0)
-        return {-1, -1, -1, 0.0};
-
-    int end_x = TO_INT(end.x);
-    int end_z = TO_INT(end.y);
-
-    if (end_x == ogCoordinateStart->x && end_z == ogCoordinateStart->y)
-    {
-        return {-1, -1, -1, 0.0};
-    }
-
-    float end_cost = end.z;
-    float end_heading = end.w;
-
-    long end_pos = computePos(width, end_x, end_z);
-
-    if (end_pos == pos)
-        return {-1, -1, -1, 0.0};
-
-    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP))
-    {
-        // A new node is being added to the graph
-        incNodeDeriveCount(graph, pos);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-        return {end.x, end.y, end_heading, 1.0};
-    }
-
-    if (!ignore_collision && change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION))
-    {
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        *nodeCollision = true;
-        decNodeDeriveCount(graph, pos);
-        return {end.x, end.y, end_heading, 0.0};
-    }
-
-    return {-1, -1, -1, 0.0};
-}
-
 __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData,
                                              float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogCoordinateStart,
                                              float maxPathSize, float velocity_m_s, bool controlExpansion, bool forceExpansion, bool *nodeCollision,
@@ -200,8 +138,8 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
         pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     }
 
-    /// during strong exponential expansion which we are not forcing graph expansion, 
-    // we can ignore graph collision to improve speed, because the graph is still expanding. 
+    /// during strong exponential expansion which we are not forcing graph expansion,
+    // we can ignore graph collision to improve speed, because the graph is still expanding.
     // We did not reach a stuck state yet. If we keep colliding, we can make our graph reshape too early
     const bool ignore_collision = !forceExpansion && !controlExpansion;
 
@@ -237,7 +175,7 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
 }
 
 void CudaGraph::expandTree(float3 *og, float maxPathSize, float velocity_m_s,
-                           bool controlExpansion, bool forceExpansion,  int2 goal, angle goal_heading,
+                           bool controlExpansion, bool forceExpansion, int2 goal, angle goal_heading,
                            float dist_to_goal_tolerance, angle heading_error_tolerance)
 {
     int size = _graph->width() * _graph->height();

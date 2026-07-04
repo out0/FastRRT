@@ -13,6 +13,7 @@
 #include <memory>
 #include "graph_node.h"
 
+
 #ifdef DRIVELESS_CUDA_ENABLED
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
@@ -271,21 +272,6 @@ public:
     float getDirectCost(int x, int z);
 
     void dumpNodesToFile(const char *filename);
-
-    /// @brief Finds the best pair of nodes (graph node + og coordinate) that can directly connect to the goal, accounting for collision detection and max curvature.
-    /// @param og
-    /// @param radius
-    /// @param isSafeZoneChecked
-    /// @return true if a valid direct connection to the goal was found
-    bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
-
-    /// @brief Returns the parent node (x, z, heading, cost) of the best direct connection to the goal found by findBestGoalDirectConnection()
-    /// @return
-    float4 bestGraphDirectConnectionParent();
-
-    /// @brief Returns the child node (x, z, heading, cost) of the best direct connection to the goal found by findBestGoalDirectConnection()
-    /// @return
-    float4 bestGraphDirectConnectionChild();
 
 #ifdef DRIVELESS_CUDA_ENABLED
     sptr<float4> convertPlannedPath(std::vector<Waypoint> path);

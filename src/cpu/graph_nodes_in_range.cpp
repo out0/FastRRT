@@ -3,7 +3,7 @@
 #include <driveless/cpu_parallel_processor.h>
 #include <atomic>
 
-extern int getTypeCpu(int4 *graph, long pos);
+extern int getTypeCuda(int4 *graph, long pos);
 
 class CountElementsInRangeProcessor : public ParallelProcessor
 {
@@ -47,7 +47,7 @@ public:
         if (dx * dx + dz * dz > _radius_sqr)
             return;
 
-        if (getTypeCpu(_graph, pos) == _type)
+        if (getTypeCuda(_graph, pos) == _type)
         {
             __atomic_fetch_add(&_count, 1u, __ATOMIC_SEQ_CST);
         }
@@ -108,7 +108,7 @@ public:
         if (dx * dx + dz * dz > _radius_sqr)
             return;
 
-        if (getTypeCpu(_graph, pos) == _type)
+        if (getTypeCuda(_graph, pos) == _type)
         {
             int store_pos = currentPos.fetch_add(1);
             _res[store_pos].x = x;

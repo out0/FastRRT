@@ -3,8 +3,8 @@
 
 extern  bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern  long computePos(int width, int x, int z);
-extern  float getHeadingCpu(float4 *graphData, long pos);
-extern  float getCostCpu(float4 *graphData, long pos);
+extern  float getHeadingCuda(float4 *graphData, long pos);
+extern  float getCostCuda(float4 *graphData, long pos);
 extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 extern  bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 
@@ -27,7 +27,7 @@ extern  bool set(int4 *graph, float4 *graphData, long pos, float heading, int pa
     
     int numPoints = TO_INT(distance);
 
-    float local_heading = getHeadingCpu(graphData, pos);
+    float local_heading = getHeadingCuda(graphData, pos);
 
     float a1 = local_heading - PI / 2;
     float a2 = goal_heading - PI / 2;
@@ -39,7 +39,7 @@ extern  bool set(int4 *graph, float4 *graphData, long pos, float heading, int pa
     int last_x = x;
     int last_z = z;
 
-    const float parentCost = getCostCpu(graphData, pos);
+    const float parentCost = getCostCuda(graphData, pos);
     float nodeCost = parentCost;
 
     // float dx = goal_x - x;

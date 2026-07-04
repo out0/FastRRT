@@ -6,15 +6,15 @@
 extern float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern long computePos(int width, int x, int z);
-extern float getHeadingCpu(float4 *graphData, long pos);
-extern void setTypeCpu(int4 *graph, long pos, int type);
-extern int getTypeCpu(int4 *graph, long pos);
-extern int2 getParentCpu(int4 *graph, long pos);
-extern void setCostCpu(float4 *graphData, long pos, float cost);
-extern float getCostCpu(float4 *graphData, long pos);
+extern float getHeadingCuda(float4 *graphData, long pos);
+extern void setTypeCuda(int4 *graph, long pos, int type);
+extern int getTypeCuda(int4 *graph, long pos);
+extern int2 getParentCuda(int4 *graph, long pos);
+extern void setCostCuda(float4 *graphData, long pos, float cost);
+extern float getCostCuda(float4 *graphData, long pos);
 extern bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
-extern bool setCollisionCpu(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost);
-extern bool checkInGraphCpu(int4 *graph, long pos);
+extern bool setCollisionCuda(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost);
+extern bool checkInGraphCuda(int4 *graph, long pos);
 extern float generateRandom(RandState *state, int pos, float min_val, float max_val);
 extern float generateRandomNeg(RandState *state, int pos, float max_val);
 extern void setParentCpu(int4 *graph, long pos, int parent_x, int parent_z);
@@ -23,7 +23,7 @@ extern void decNodeDeriveCount(int4 *graph, long pos);
 extern int getNodeDeriveCount(int4 *graph, long pos);
 extern void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
-extern void setDirectCostCpu(float4 *graphData, long pos, float cost);
+extern void setDirectCostCuda(float4 *graphData, long pos, float cost);
 extern void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
 extern int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
                         float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 ogStart, float velocity_m_s, bool *nodeCollision);
@@ -69,7 +69,7 @@ public:
         int height = _params[FRAME_PARAM_HEIGHT];
         int density_width = _params[FRAME_DENSITY_WIDTH];
 
-        int type = getTypeCpu(_graph, pos);
+        int type = getTypeCuda(_graph, pos);
 
         if (type == GRAPH_TYPE_NULL || type == GRAPH_TYPE_PROCESSING)
             return;
@@ -237,7 +237,7 @@ public:
         int width = _searchParams[FRAME_PARAM_WIDTH];
         int height = _searchParams[FRAME_PARAM_HEIGHT];
 
-        if (!checkInGraphCpu(_graph, pos))
+        if (!checkInGraphCuda(_graph, pos))
             return;
 
         int z = pos / width;
@@ -251,7 +251,7 @@ public:
             return;
         }
 
-        float heading = getHeadingCpu(_graphData, pos);
+        float heading = getHeadingCuda(_graphData, pos);
         double maxSteeringAngle = _physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
         double steeringAngle = generateRandomNeg(_state, pos, maxSteeringAngle);

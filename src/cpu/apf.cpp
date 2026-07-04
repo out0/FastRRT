@@ -6,8 +6,8 @@
 
 extern void incIntrinsicCost(float4 *graphData, int width, int x, int z, float cost);
 extern long computePos(int width, int x, int z);
-extern float getIntrinsicCost(float4 *graphData, long pos);
-extern void setIntrinsicCost(float4 *graphData, long pos, float cost);
+extern float getIntrinsicCostCuda(float4 *graphData, long pos);
+extern void setIntrinsicCostCuda(float4 *graphData, long pos, float cost);
 
 inline bool in_range(int width, int height, int x, int z)
 {
@@ -70,7 +70,7 @@ public:
         if (c >= 0)
             return; // not an obstacle
 
-        setIntrinsicCost(_graphData, pos, 100 * _Kr_half);
+        setIntrinsicCostCuda(_graphData, pos, 100 * _Kr_half);
 
         if (check_is_obstacle(_og, _classCosts, _width, _height, x - 1, z) &&
             check_is_obstacle(_og, _classCosts, _width, _height, x + 1, z) &&
@@ -164,8 +164,8 @@ public:
 
         float dcost = (float)(dx * dx + dz * dz) * _Ka_half;
 
-        float current_cost = getIntrinsicCost(_graphData, pos);
-        setIntrinsicCost(_graphData, pos, current_cost - dcost);
+        float current_cost = getIntrinsicCostCuda(_graphData, pos);
+        setIntrinsicCostCuda(_graphData, pos, current_cost - dcost);
     }
 };
 

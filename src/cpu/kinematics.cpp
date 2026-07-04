@@ -3,12 +3,12 @@
 #include "../../include/cuda_graph.h"
 
 extern  bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
-extern  int2 getParentCpu(int4 *graph, long pos);
-extern  void setTypeCpu(int4 *graph, long pos, int type);
-extern  float getHeadingCpu(float4 *graphData, long pos);
+extern  int2 getParentCuda(int4 *graph, long pos);
+extern  void setTypeCuda(int4 *graph, long pos, int type);
+extern  float getHeadingCuda(float4 *graphData, long pos);
 extern  bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern  long computePos(int width, int x, int z);
-extern  float getCostCpu(float4 *graphData, long pos);
+extern  float getCostCuda(float4 *graphData, long pos);
 extern  float getFrameCostCpu(float3 *frame, float *classCost, long pos);
 extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 
@@ -166,10 +166,10 @@ extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
     int last_z = start.y;
     long startPos = computePos(width, start.x, start.y);
 
-    float heading = getHeadingCpu(graphData, startPos);
+    float heading = getHeadingCuda(graphData, startPos);
     int2 lastp;
 
-    const float parentCost = getCostCpu(graphData, startPos);
+    const float parentCost = getCostCuda(graphData, startPos);
     float nodeCost = parentCost;
 
     // int2 debug[5000];
@@ -245,7 +245,7 @@ extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
     double dt = 0.1;
 
     long startPos = computePos(width, start.x, start.y);
-    double heading = getHeadingCpu(graphData, startPos);
+    double heading = getHeadingCuda(graphData, startPos);
 
     double path_heading = compute_path_heading(startM, endM);
     double steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
@@ -348,8 +348,8 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
     const float dx = end.x - start.x;
     const float dz = end.y - start.y;
     const float d = sqrtf(dx * dx + dz * dz);
-    const float a1 = getHeadingCpu(graphData, computePos(width, start.x, start.y)) - HALF_PI;
-    const float a2 = getHeadingCpu(graphData, computePos(width, end.x, end.y)) - HALF_PI;
+    const float a1 = getHeadingCuda(graphData, computePos(width, start.x, start.y)) - HALF_PI;
+    const float a2 = getHeadingCuda(graphData, computePos(width, end.x, end.y)) - HALF_PI;
     // Tangent vectors
     const float2 tan1 = {d * cosf(a1), d * sinf(a1)};
     const float2 tan2 = {d * cosf(a2), d * sinf(a2)};

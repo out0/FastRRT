@@ -2,7 +2,6 @@
 #include "../../include/cuda_graph.h"
 #include <fstream>
 
-extern float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern long computePos(int width, int x, int z);
 extern float getHeadingCuda(float4 *graphData, long pos);
 extern inline void setHeadingCuda(float4 *graphData, long pos, float heading);
@@ -30,9 +29,9 @@ extern bool preProcessedCollisionDistance(int *searchParams);
 extern bool preProcessedCollisionVector(int *searchParams);
 extern bool preProcessedDistanceToGoal(int *searchParams);
 
-extern float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
-                          float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
-                          bool ignore_collision);
+extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                       float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
+                                       bool ignore_collision);
 
 extern __device__ __host__ float4 checkDirectConnectionToGoal(float4 *graphData, float3 *frame,
                                                               float *classCosts, int *searchSpaceParams, float max_curvature,

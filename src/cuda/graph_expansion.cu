@@ -4,7 +4,6 @@
 #include "../../include/cuda_graph.h"
 #include <fstream>
 
-extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ inline void setHeadingCuda(float4 *graphData, long pos, float heading);

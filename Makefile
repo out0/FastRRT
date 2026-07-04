@@ -13,7 +13,7 @@ local: bin
 
 install: bin 
 	cd build && sudo make install
-	cp build/libfastrrt.so.2.1.1	python_bind/app/pyfastrrt/cpp/libfastrrt.so
+	cp build/libfastrrt.so.2.2.0	python_bind/app/pyfastrrt/cpp/libfastrrt.so
 #	cd python_bind && pip3 install .
 	cd python_bind && pip3 install . --break-system-packages	
 	cd python_bind && rm -rf build

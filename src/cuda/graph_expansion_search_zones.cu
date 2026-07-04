@@ -3,7 +3,6 @@
 #include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
-extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);

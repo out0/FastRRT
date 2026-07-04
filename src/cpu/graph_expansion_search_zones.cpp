@@ -3,7 +3,6 @@
 #include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
-extern float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern long computePos(int width, int x, int z);
 extern float getHeadingCuda(float4 *graphData, long pos);
@@ -25,8 +24,11 @@ extern void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
 extern void setDirectCostCuda(float4 *graphData, long pos, float cost);
 extern void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
-extern int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
-                        float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 ogStart, float velocity_m_s, bool *nodeCollision);
+
+extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
+                                       float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
+                                       bool ignore_collision);
+
 
 #define MIN_PATH_SIZE 5.0
 
@@ -189,8 +191,8 @@ private:
     float3 _ogStart;
     float _maxPathSize;
     float _velocity_m_s;
-    bool _expandFrontier;
-    bool _forceExpand;
+    bool _controlExpansion;
+bool _forceExpansion;
     bool *_nodeCollision;
     int _goal_x;
     int _goal_z;
@@ -204,7 +206,7 @@ public:
                                 float *classCosts, int *searchParams,        //
                                 double *physicalParams, float3 ogStart,      //
                                 float maxPathSize, float velocity_m_s,       //
-                                bool expandFrontier, bool forceExpand,       //
+                                bool controlExpansion, bool forceExpansion,       //
                                 bool *nodeCollision, int goal_x, int goal_z, //
                                 float goal_heading, int numThreadHandlers = 12) : ParallelProcessor(numThreadHandlers, searchParams[FRAME_PARAM_HEIGHT], searchParams[FRAME_PARAM_WIDTH]),
                                                                                   _state(state),
@@ -219,8 +221,8 @@ public:
                                                                                   _ogStart(ogStart),
                                                                                   _maxPathSize(maxPathSize),
                                                                                   _velocity_m_s(velocity_m_s),
-                                                                                  _expandFrontier(expandFrontier),
-                                                                                  _forceExpand(forceExpand),
+                                                                                  _controlExpansion(controlExpansion),
+                                                                                  _forceExpansion(forceExpansion),
                                                                                   _nodeCollision(nodeCollision),
                                                                                   _goal_x(goal_x),
                                                                                   _goal_z(goal_z),
@@ -244,7 +246,7 @@ public:
         int x = pos - z * width;
 
         // Smart expansion: if this node is a leaf, it can be expanded. If not, it still can be expanded if the region density is lower than the mean density
-        if (!_forceExpand && !checkCanExpand(_graph, _region_count, _searchParams, _node_mean, pos, x, z, _expandFrontier))
+        if (!_forceExpansion && !checkCanExpand(_graph, _region_count, _searchParams, _node_mean, pos, x, z, _controlExpansion))
         {
             // const int densityPos = computeDensityPos(searchParams[FRAME_DENSITY_WIDTH], x, z);
             // printf("wont expand (%d, %d) because of density: %d vs mean %d\n", x, z, region_count[densityPos], node_mean);
@@ -259,7 +261,8 @@ public:
         if (pathSize <= 0)
             pathSize = MIN_PATH_SIZE;
 
-        expand_node(_graph, _graphData, _frame, pos, x, z, steeringAngle, pathSize, _classCosts, _searchParams, _physicalParams, _ogStart, _velocity_m_s, _nodeCollision);
+             const bool ignore_collision = !_forceExpansion && !_controlExpansion;
+        expand_node(_graph, _graphData, _frame, pos, x, z, steeringAngle, pathSize, _classCosts, _searchParams, _physicalParams, &_ogStart, _velocity_m_s, _nodeCollision, ignore_collision);
     }
 };
 

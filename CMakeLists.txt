@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(fastrrt LANGUAGES CXX VERSION 2.1.1 DESCRIPTION "libfastrrt")
+project(fastrrt LANGUAGES CXX VERSION 2.2.0 DESCRIPTION "libfastrrt")
 
 find_package(driveless REQUIRED)
 get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)

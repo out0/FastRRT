@@ -1,15 +1,29 @@
 cmake_minimum_required(VERSION 3.26)
 
-if (DRIVELESS_CUDA_ENABLED)
-    project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless test")
+project(unittest LANGUAGES CXX VERSION 2.0.0 DESCRIPTION "libdriveless test")
+
+find_package(driveless REQUIRED)
+get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)
+if(_driveless_defs MATCHES "DRIVELESS_CUDA_ENABLED")
+    message(STATUS "driveless was built with CUDA support")
+    set(DRIVELESS_CUDA_ENABLED ON)
 else()
-    project(unittest LANGUAGES CXX VERSION 2.0.0 DESCRIPTION "libdriveless test")
+    message(WARNING "driveless was built without CUDA support")
+    set(DRIVELESS_CUDA_ENABLED OFF)
 endif()
 
+if (DRIVELESS_CUDA_ENABLED)
+    # Optional: explicitly set NVCC if needed
+    set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+    enable_language(CUDA)
+    set(CMAKE_CUDA_ARCHITECTURES all-major)
+    find_package(CUDAToolkit REQUIRED)
+endif()
 
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
+
 
 # Optional: explicitly set NVCC if needed
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
@@ -84,75 +98,76 @@ SET(TARGET_H
 if (DRIVELESS_CUDA_ENABLED)
 add_executable(
   ${CMAKE_PROJECT_NAME} 
-  ../src/cuda/kinematics.cu
-  ../src/cuda/path_feasible.cu
-  ../src/cuda/random_number_gen.cu
-  ../src/cuda/graph.cu
-  ../src/cuda/graph_best_node.cu
-  ../src/cuda/graph_costs.cu
-  ../src/cuda/graph_collision.cu
-  ../src/cuda/graph_clear.cu  
-  ../src/cuda/graph_hermite_connection.cu
-  ../src/cuda/graph_expansion.cu
-  ../src/cuda/graph_expansion_search_zones.cu
-  ../src/cuda/graph_list.cu
-  ../src/cuda/graph_nodes_in_range.cu
-  ../src/cuda/graph_optimization.cu
-  ../src/cuda/apf.cu
-  ../src/cuda/graph_direct_goal_connection.cu
-  #../src/cuda/graph_check_goal_reached.cu
-  ../src/fastrrt.cpp
-  ../src/python_bind.cpp
-  ../src/python_cuda_graph_bind.cpp
-  ../src/interpolation.cpp
-  ../src/graph_check_dag_consistency.cpp
-  
-
-  src/test_utils.cpp
-  src/unittests.cpp
-  src/test_apf.cpp
-  src/test_graph.cpp
-  src/test_graph_node_derivation.cpp
-  src/test_kinematics.cpp
-  src/test_graph_best_node.cpp
-  src/test_graph_can_connect_hermite.cpp
-  src/test_graph_dag_consistency.cpp
-  src/test_graph_solve_collisions.cpp
-  #src/test_graph_direct_goal_connection.cpp
-  src/test_graph_dump.cpp
-  src/test_rrt.cpp
-)
-else()
-  set_source_files_properties(${PROJECT_NAME}
-        src/cuda/graph.cu
-        PROPERTIES LANGUAGE CXX)
-
-  add_executable(
-    ${CMAKE_PROJECT_NAME} 
+    ../src/cuda/kinematics.cu
+    ../src/cuda/path_feasible.cu
+    ../src/cuda/random_number_gen.cu
     ../src/cuda/graph.cu
-    ../src/cpu/graph_optimization.cpp
-    ../src/cpu/graph_nodes_in_range.cpp
-    ../src/cpu/graph_list.cpp
-    ../src/cpu/graph_hermite_connection.cpp
-    ../src/cpu/kinematics.cpp
-    ../src/cpu/path_feasible.cpp
-    ../src/cpu/graph_expansion.cpp
-    ../src/cpu/graph_expansion_search_zones.cpp
-    ../src/cpu/graph_costs.cpp
-    ../src/cpu/graph_collision.cpp
-    ../src/cpu/graph_check_goal_reached.cpp
-    ../src/cpu/graph_best_node.cpp
-    ../src/cpu/random_number_gen.cpp
-    ../src/cpu/apf.cpp
-    ../src/cpu/kinematics.cpp
-    ../src/cpu/path_feasible.cpp
+    ../src/cuda/graph_list.cu
+    ../src/cuda/graph_best_node.cu
+    ../src/cuda/graph_optimization.cu
+    ../src/cuda/graph_expansion.cu
+    ../src/cuda/graph_nodes_in_range.cu
+    ../src/cuda/graph_costs.cu
+    ../src/cuda/graph_clear.cu
+    ../src/cuda/apf.cu
+    ../src/cuda/graph_expansion_search_zones.cu
+    ../src/cuda/graph_collision.cu
+    ../src/cuda/graph_hermite_connection.cu
+    ../src/cuda/graph_direct_goal_connection.cu
+    ../src/cuda/graph_node_expansion.cu
     ../src/fastrrt.cpp
     ../src/python_bind.cpp
     ../src/python_cuda_graph_bind.cpp
     ../src/interpolation.cpp
     ../src/graph_check_dag_consistency.cpp
-    
 
+    src/test_utils.cpp
+    src/unittests.cpp
+    src/test_apf.cpp
+    src/test_graph.cpp
+    src/test_graph_node_derivation.cpp
+    src/test_kinematics.cpp
+    src/test_graph_best_node.cpp
+    src/test_graph_can_connect_hermite.cpp
+    src/test_graph_dag_consistency.cpp
+    src/test_graph_solve_collisions.cpp
+    #src/test_graph_direct_goal_connection.cpp
+    src/test_graph_dump.cpp
+    src/test_rrt.cpp
+)
+else()
+    set_source_files_properties(
+        ../src/cuda/graph.cu
+        ../src/cuda/graph_direct_goal_connection.cu
+        ../src/cuda/graph_optimization.cu
+        ../src/cuda/graph_node_expansion.cu
+        PROPERTIES LANGUAGE CXX)
+
+
+  add_executable(
+    ${CMAKE_PROJECT_NAME} 
+    ../src/cpu/kinematics.cpp
+    ../src/cpu/path_feasible.cpp
+    ../src/cpu/random_number_gen.cpp
+    ../src/cuda/graph.cu
+    ../src/cpu/graph_list.cpp
+    ../src/cpu/graph_best_node.cpp
+    ../src/cpu/graph_expansion.cpp
+    ../src/cpu/graph_nodes_in_range.cpp
+    ../src/cpu/graph_costs.cpp
+    ../src/cpu/graph_clear.cpp
+    ../src/cpu/apf.cpp
+    ../src/cpu/graph_expansion_search_zones.cpp
+    ../src/cpu/graph_collision.cpp
+    ../src/cpu/graph_hermite_connection.cpp
+    ../src/fastrrt.cpp
+    ../src/python_bind.cpp
+    ../src/python_cuda_graph_bind.cpp
+    ../src/interpolation.cpp
+    ../src/graph_check_dag_consistency.cpp
+    ../src/cuda/graph_direct_goal_connection.cu
+    ../src/cuda/graph_optimization.cu
+    ../src/cuda/graph_node_expansion.cu
     src/test_utils.cpp
     src/unittests.cpp
     src/test_apf.cpp

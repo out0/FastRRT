@@ -212,11 +212,12 @@ TEST(TestRRT, TestSearch)
     rrt.initialize();
 
     int i = 0;
-    while (!rrt.planning_loop())
+    while (rrt.planning_loop())
     {
-        // logGraph(&rrt, &frame, "output1.png", ++i);
+        logGraph(&rrt, &frame, "output1.png", ++i);
     }
 
+    logGraph(&rrt, &frame, "output1.png", ++i);
     ASSERT_TRUE(rrt.goalReached());
 
     auto [path, cost]  = rrt.getPlannedPath();

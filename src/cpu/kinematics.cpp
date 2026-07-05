@@ -18,7 +18,7 @@ extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
- int2 convert_map_pose_to_waypoint(float3 coord_origin, double2 coord)
+ int2 convert_map_pose_to_waypoint(float3 *coord_origin, double2 coord)
 {
     // map to waypoint formula is:
     //
@@ -37,8 +37,8 @@ extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
     // z = Zcenter - x * rh
 
     return {
-        TO_INT(coord_origin.x + coord.y),
-        TO_INT(coord_origin.y - coord.x)};
+        TO_INT(coord_origin->x + coord.y),
+        TO_INT(coord_origin->y - coord.x)};
 }
 
 /// @brief Converts any waypoint (x, z) to map coordinate (x, y) assuming that location = (x = 0, y = 0, heading = 0)
@@ -47,11 +47,11 @@ extern  float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
- inline double2 convert_waypoint_to_map_pose(float3 coord_origin, int2 coord)
+ inline double2 convert_waypoint_to_map_pose(float3 *coord_origin, int2 coord)
 {
     return {
-        (coord_origin.y - coord.y),
-        (coord.x - coord_origin.x)};
+        (coord_origin->y - coord.y),
+        (coord.x - coord_origin->x)};
 }
 
  double compute_euclidean_2d_dist(const double2 &start, const double2 &end)
@@ -137,7 +137,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
 
-    const double2 startPose = convert_waypoint_to_map_pose(*ogCoordinateStart, start);
+    const double2 startPose = convert_waypoint_to_map_pose(ogCoordinateStart, start);
     // printf ("[check_kinematic_new_path] ogStart: %f, %f, %f\n", ogStart->x, ogStart->y, ogStart->z);
     // printf ("[check_kinematic_new_path] startPose: waypoint (%d, %d) -> map (%f, %f)\n", start.x, start.y, startPose.x, startPose.y);
 
@@ -186,7 +186,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
         y += ds * sinf(heading + beta);
         heading += heading_increment_factor;
 
-        lastp = convert_map_pose_to_waypoint(*ogCoordinateStart, {x, y});
+        lastp = convert_map_pose_to_waypoint(ogCoordinateStart, {x, y});
         // printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
 
         if (lastp.x == last_x && lastp.y == last_z)
@@ -240,8 +240,8 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
 
-    double2 startM = convert_waypoint_to_map_pose(ogStart, start);
-    double2 endM = convert_waypoint_to_map_pose(ogStart, end);
+    double2 startM = convert_waypoint_to_map_pose(&ogStart, start);
+    double2 endM = convert_waypoint_to_map_pose(&ogStart, end);
     double dt = 0.1;
 
     long startPos = computePos(width, start.x, start.y);
@@ -276,7 +276,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
         steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
 
-        nextp = convert_map_pose_to_waypoint(ogStart, nextpM);
+        nextp = convert_map_pose_to_waypoint(&ogStart, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;

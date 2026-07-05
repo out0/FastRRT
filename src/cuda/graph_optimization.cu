@@ -116,7 +116,7 @@ bool CudaGraph::optimizePathLoop(float3 *frame, std::shared_ptr<float4[]> path, 
 {
 #ifdef DRIVELESS_CUDA_ENABLED
     cptr<float4> pathData = std::make_unique<CudaPtr<float4>>(path_size);
-    xxx const float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
+    const float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
     const bool preProcessCollisionDistance = preProcessedCollisionDistance(_searchSpaceParams->get());
     const bool preProcessDistanceToGoal = preProcessedDistanceToGoal(_searchSpaceParams->get());
 #else

@@ -13,6 +13,7 @@
 #include <memory>
 #include "graph_node.h"
 
+#define BLOCK_SIZE 128
 
 #ifdef DRIVELESS_CUDA_ENABLED
 #include <cuda_runtime.h>

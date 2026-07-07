@@ -124,7 +124,7 @@ bool FastRRT::planning_loop()
     bool controlExpansion = _last_expanded_node_count >= 100;
     bool forceExpansion = _last_expanded_node_count == 0;
 
-    // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
+    //printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
     //_graph.dumpNodesToFile("before_error_1.txt");
     if (_smartExpansion)

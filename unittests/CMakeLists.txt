@@ -110,6 +110,7 @@ add_executable(
     ../src/cuda/graph_costs.cu
     ../src/cuda/graph_clear.cu
     ../src/cuda/apf.cu
+    ../src/cuda/control_expansion.cu
     ../src/cuda/graph_expansion_search_zones.cu
     ../src/cuda/graph_collision.cu
     ../src/cuda/graph_hermite_connection.cu
@@ -141,6 +142,7 @@ else()
         ../src/cuda/graph_direct_goal_connection.cu
         ../src/cuda/graph_optimization.cu
         ../src/cuda/graph_node_expansion.cu
+        ../src/cuda/control_expansion.cu        
         PROPERTIES LANGUAGE CXX)
 
 
@@ -150,6 +152,7 @@ else()
     ../src/cpu/path_feasible.cpp
     ../src/cpu/random_number_gen.cpp
     ../src/cuda/graph.cu
+    ../src/cuda/control_expansion.cu    
     ../src/cpu/graph_list.cpp
     ../src/cpu/graph_best_node.cpp
     ../src/cpu/graph_expansion.cpp

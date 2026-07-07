@@ -92,6 +92,7 @@ if (DRIVELESS_CUDA_ENABLED)
     src/cuda/graph_hermite_connection.cu
     src/cuda/graph_direct_goal_connection.cu
     src/cuda/graph_node_expansion.cu
+    src/cuda/control_expansion.cu
     src/fastrrt.cpp
     src/python_bind.cpp
     src/python_cuda_graph_bind.cpp
@@ -105,6 +106,7 @@ else()
         src/cuda/graph_direct_goal_connection.cu
         src/cuda/graph_optimization.cu
         src/cuda/graph_node_expansion.cu
+        src/cuda/control_expansion.cu
         PROPERTIES LANGUAGE CXX)
 
    add_library(
@@ -132,6 +134,7 @@ else()
     src/cuda/graph_direct_goal_connection.cu
     src/cuda/graph_optimization.cu
     src/cuda/graph_node_expansion.cu
+    src/cuda/control_expansion.cu
     )
 
 endif()

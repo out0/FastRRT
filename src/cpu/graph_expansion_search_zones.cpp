@@ -28,6 +28,8 @@ extern void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int 
 extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad,
                                        float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogCoordinateStart, float velocity_m_s, bool *nodeCollision,
                                        bool ignore_collision);
+extern __device__ __host__ int computeDensityPos(int density_width, int x, int z);
+extern __device__ __host__ bool checkCanExpand(int4 *graph, unsigned int *region_count, int *params, float node_mean, int pos, int x, int z, bool controlExpansion);
 
 
 #define MIN_PATH_SIZE 5.0
@@ -35,12 +37,6 @@ extern __device__ __host__ float4 expand_node(int4 *graph, float4 *graphData, fl
 #define BLOCK_SIZE 128
 #define CHECK_NO_COLLISION 1
 
-int computeDensityPos(int density_width, int x, int z)
-{
-    int density_x = TO_INT(x / BLOCK_SIZE);
-    int density_z = TO_INT(z / BLOCK_SIZE);
-    return (density_z * density_width + density_x);
-}
 
 class CountNodesInDensityRegionProcess : public ParallelProcessor
 {
@@ -86,17 +82,6 @@ public:
     }
 };
 
-bool checkCanExpand(int4 *graph, unsigned int *region_count, int *params, float node_mean, int pos, int x, int z, bool expandFrontier)
-{
-    if (expandFrontier)
-    {
-        return getNodeDeriveCount(graph, pos) == 0;
-    }
-
-    const int densityPos = computeDensityPos(params[FRAME_DENSITY_WIDTH], x, z);
-    // return getNodeDeriveCount(graph, pos) < 3 && (region_count[densityPos] <= 0.5 * BLOCK_SIZE);
-    return region_count[densityPos] <= 0.5 * BLOCK_SIZE;
-}
 
 void CudaGraph::__initializeRegionDensity()
 {

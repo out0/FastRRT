@@ -1,5 +1,5 @@
 #include <driveless/math_utils.h>
-#include <driveless/cuda_params.h>
+#include <driveless/frame_params.h>
 #include "../../include/cuda_graph.h"
 
 

@@ -239,7 +239,7 @@ public:
         }
 
         float heading = getHeadingCuda(_graphData, pos);
-        double maxSteeringAngle = _physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+        double maxSteeringAngle = _physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
 
         double steeringAngle = generateRandomNeg(_state, pos, maxSteeringAngle);
         double pathSize = generateRandom(_state, pos, 5.0, _maxPathSize);

@@ -124,8 +124,8 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
     int x = pos - z * width;
 
     float heading = getHeadingCuda(graphData, pos);
-    double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    double maxCurvature = physicalParams[PHYSICAL_MAX_CURVATURE];
+    double maxSteeringAngle = physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    double maxCurvature = physicalParams[PHYSICAL_PARAM_MAX_CURVATURE];
 
     //    printf ("max_curvature = %f\n", max_curvature);
 
@@ -242,13 +242,13 @@ bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int go
     if (search_frame->isObstacle(goal_x, goal_z))
         return false;
 
-    float maxSteering = _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    float maxSteering = _physicalParams->get()[PHYSICAL_PARAM_MAX_STEERING_RAD];
 
     return canConnectToGoalUsingHermite(
         _graph->getPtr(),
         _graphData->getPtr(),
         search_frame->getPtr(),
-        search_frame->getCudaClassCostsPtr(),
+        search_frame->getClassCostsPtr(),
         search_frame->getFrameParamsPtr(),
         maxSteering,
         x, z, goal_x, goal_z, goal_heading);

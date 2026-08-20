@@ -13,6 +13,6 @@ extern float getFrameCostCpu(float3 *frame, float *classCost, long pos) ;
 float computeCost(float3 *frame, int4 *graph, float4 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent) {
     int2 parent = getParentCuda(graph, nodePos);
     float parentCost = getCostCuda(graphData, computePos(width, parent.x, parent.y));
-    float heading_error_perc = abs(goalHeading_rad - getHeadingCuda(graphData, nodePos)) / physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    float heading_error_perc = abs(goalHeading_rad - getHeadingCuda(graphData, nodePos)) / physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
     return (getFrameCostCpu(frame, classCosts, nodePos) + distToParent) * (1 + heading_error_perc) + parentCost;
 }

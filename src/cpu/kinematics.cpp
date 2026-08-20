@@ -126,12 +126,12 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
         return {-1, -1};
     }
 
-    // const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-    // const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-    // const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-    // const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
-    const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    const double lr = physicalParams[PHYSICAL_PARAMS_LR];
+    // const double rateW = physicalParams[PHYSICAL_PARAM_RATE_W];
+    // const double rateH = physicalParams[PHYSICAL_PARAM_RATE_H];
+    // const double invRateW = physicalParams[PHYSICAL_PARAM_INV_RATE_W];
+    // const double invRateH = physicalParams[PHYSICAL_PARAM_INV_RATE_H];
+    const double maxSteering = physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const double lr = physicalParams[PHYSICAL_PARAM_WHEELBASE];
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
@@ -230,12 +230,12 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphDa
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
-    // const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-    // const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-    // const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-    // const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
-    const double lr = physicalParams[PHYSICAL_PARAMS_LR];
-    const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    // const double rateW = physicalParams[PHYSICAL_PARAM_RATE_W];
+    // const double rateH = physicalParams[PHYSICAL_PARAM_RATE_H];
+    // const double invRateW = physicalParams[PHYSICAL_PARAM_INV_RATE_W];
+    // const double invRateH = physicalParams[PHYSICAL_PARAM_INV_RATE_H];
+    const double lr = physicalParams[PHYSICAL_PARAM_WHEELBASE];
+    const double maxSteering = physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];

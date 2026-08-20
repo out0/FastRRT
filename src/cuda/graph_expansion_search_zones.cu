@@ -181,8 +181,8 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     }
 
     float heading = getHeadingCuda(graphData, pos);
-    double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    double maxCurvature = physicalParams[PHYSICAL_MAX_CURVATURE];
+    double maxSteeringAngle = physicalParams[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    double maxCurvature = physicalParams[PHYSICAL_PARAM_MAX_CURVATURE];
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = generateRandom(state, pos, 5.0, maxPathSize);

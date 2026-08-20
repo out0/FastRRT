@@ -340,36 +340,36 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
 {
 #ifdef DRIVELESS_CUDA_ENABLED
     _physicalParams = std::make_unique<CudaPtr<double>>(9);
-    _physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _graph->width() / perceptionWidthSize_m;
-    _physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
-    _physicalParams->get()[PHYSICAL_PARAMS_RATE_H] = _graph->height() / perceptionHeightSize_m;
-    _physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _graph->height();
-    _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
-    _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
-    _physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
+    _physicalParams->get()[PHYSICAL_PARAM_RATE_W] = _graph->width() / perceptionWidthSize_m;
+    _physicalParams->get()[PHYSICAL_PARAM_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
+    _physicalParams->get()[PHYSICAL_PARAM_RATE_H] = _graph->height() / perceptionHeightSize_m;
+    _physicalParams->get()[PHYSICAL_PARAM_INV_RATE_H] = perceptionHeightSize_m / _graph->height();
+    _physicalParams->get()[PHYSICAL_PARAM_MAX_STEERING_RAD] = maxSteeringAngle.rad();
+    _physicalParams->get()[PHYSICAL_PARAM_MAX_STEERING_DEG] = maxSteeringAngle.deg();
+    _physicalParams->get()[PHYSICAL_PARAM_WHEELBASE] = vehicleLength / 2;
 
     const float t = tanf(maxSteeringAngle.rad());
 
     if (max_curvature < 0)
-        _physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4 + t));
+        _physicalParams->get()[PHYSICAL_PARAM_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4 + t));
     else
-        _physicalParams->get()[PHYSICAL_MAX_CURVATURE] = max_curvature;
+        _physicalParams->get()[PHYSICAL_PARAM_MAX_CURVATURE] = max_curvature;
 #else
     _physicalParams = std::make_unique<double[]>(9);
-    _physicalParams.get()[PHYSICAL_PARAMS_RATE_W] = _graph->width() / perceptionWidthSize_m;
-    _physicalParams.get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
-    _physicalParams.get()[PHYSICAL_PARAMS_RATE_H] = _graph->height() / perceptionHeightSize_m;
-    _physicalParams.get()[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _graph->height();
-    _physicalParams.get()[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
-    _physicalParams.get()[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
-    _physicalParams.get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
+    _physicalParams.get()[PHYSICAL_PARAM_RATE_W] = _graph->width() / perceptionWidthSize_m;
+    _physicalParams.get()[PHYSICAL_PARAM_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
+    _physicalParams.get()[PHYSICAL_PARAM_RATE_H] = _graph->height() / perceptionHeightSize_m;
+    _physicalParams.get()[PHYSICAL_PARAM_INV_RATE_H] = perceptionHeightSize_m / _graph->height();
+    _physicalParams.get()[PHYSICAL_PARAM_MAX_STEERING_RAD] = maxSteeringAngle.rad();
+    _physicalParams.get()[PHYSICAL_PARAM_MAX_STEERING_DEG] = maxSteeringAngle.deg();
+    _physicalParams.get()[PHYSICAL_PARAM_WHEELBASE] = vehicleLength / 2;
 
     const float t = tanf(maxSteeringAngle.rad());
 
     if (max_curvature < 0)
-        _physicalParams.get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4 + t));
+        _physicalParams.get()[PHYSICAL_PARAM_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4 + t));
     else
-        _physicalParams.get()[PHYSICAL_MAX_CURVATURE] = max_curvature;
+        _physicalParams.get()[PHYSICAL_PARAM_MAX_CURVATURE] = max_curvature;
 #endif
 }
 

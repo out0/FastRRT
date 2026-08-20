@@ -79,7 +79,7 @@ void FastRRT::setPlanData(SearchParams &params)
     this->_headingErrorTolerance = params.headingErrorTolerance();
 
     _graph.setSearchParams(params.minDistance(), _egoParams.egoLowerBound(), _egoParams.egoUpperBound());
-    _graph.setClassCosts(frame->getCudaClassCostsPtr(), frame->getClassCount());
+    _graph.setClassCosts(frame->getClassCostsPtr(), frame->getClassCount());
     if (frame->isSafeZoneChecked())
         _graph.setPreProcessCollisionEnable(frame->isVectorialSafeZoneChecked());
     if (frame->isDistanceToGoalProcessed())

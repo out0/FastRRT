@@ -106,3 +106,4 @@ TEST(TestGraphCanConnectHermite, NoPreProcessFail)
     delete ptr;
     delete graph;
 }
+

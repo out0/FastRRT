@@ -283,3 +283,7 @@ void FastRRT::loadGraphState(std::string filename)
     _graph.readfromDump(filename.c_str());
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
 }
+
+angle FastRRT::getHeading(int x, int z) {     
+    return _graph.getHeading(x, z); 
+}

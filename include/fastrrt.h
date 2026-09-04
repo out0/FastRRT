@@ -82,6 +82,8 @@ public:
     /// @brief Loads planner current Graph state from file, to be used when debugging the algorithm execution
     /// @param filename
     void loadGraphState(std::string filename);
+
+    angle getHeading(int x, int z);
 };
 
 #endif

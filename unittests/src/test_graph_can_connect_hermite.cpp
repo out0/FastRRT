@@ -69,7 +69,7 @@ TEST(TestGraphCanConnectHermite, StraightConnectionFail)
         {5}};
     ptr->setClassCosts(costs);
 
-    ptr->setValues(128, 0, 0, 0, 0);
+    ptr->set({128, 0}, {0, 0, 0});
 
     ASSERT_TRUE(ptr->isObstacle(128, 0));
 
@@ -98,7 +98,7 @@ TEST(TestGraphCanConnectHermite, NoPreProcessFail)
         {5}};
     ptr->setClassCosts(costs);
 
-    ptr->setValues(128, 0, 0, 0, 0);
+    ptr->set({128, 0}, {0, 0, 0});
 
     ASSERT_TRUE(ptr->isObstacle(128, 0));
     ASSERT_FALSE(graph->canConnectToGoal(ptr, 128, 128, 128, 0, 0.0));

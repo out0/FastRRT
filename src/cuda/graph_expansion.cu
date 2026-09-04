@@ -251,7 +251,7 @@ bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int go
         search_frame->getClassCostsPtr(),
         search_frame->getFrameParamsPtr(),
         maxSteering,
-        x, z, goal_x, goal_z, goal_heading);
+        x, z, goal_x, goal_z, goal_heading) >= 0;
 }
 
 void CudaGraph::dumpNodesToFile(const char *filename)

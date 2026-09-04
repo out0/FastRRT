@@ -339,7 +339,7 @@ CudaGraph::~CudaGraph()
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength, float max_curvature)
 {
 #ifdef DRIVELESS_CUDA_ENABLED
-    _physicalParams = std::make_unique<CudaPtr<double>>(9);
+    _physicalParams = std::make_unique<CudaPtr<double>>(25);
     _physicalParams->get()[PHYSICAL_PARAM_RATE_W] = _graph->width() / perceptionWidthSize_m;
     _physicalParams->get()[PHYSICAL_PARAM_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
     _physicalParams->get()[PHYSICAL_PARAM_RATE_H] = _graph->height() / perceptionHeightSize_m;
@@ -355,7 +355,7 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     else
         _physicalParams->get()[PHYSICAL_PARAM_MAX_CURVATURE] = max_curvature;
 #else
-    _physicalParams = std::make_unique<double[]>(9);
+    _physicalParams = std::make_unique<double[]>(25);
     _physicalParams.get()[PHYSICAL_PARAM_RATE_W] = _graph->width() / perceptionWidthSize_m;
     _physicalParams.get()[PHYSICAL_PARAM_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
     _physicalParams.get()[PHYSICAL_PARAM_RATE_H] = _graph->height() / perceptionHeightSize_m;

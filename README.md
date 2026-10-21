@@ -14,6 +14,7 @@ is defined, the coarse path is optimized using Hermite curve interpolation
 
 [Towards Real-time Nonholonomic Local Trajectory Planning Based on RRT using Many-core GPUs](https://www.techrxiv.org/doi/full/10.36227/techrxiv.175322833.30527176)
 
+[Published version](https://doi.org/10.1007/978-3-032-39898-7_4)
 
 ### Basic setup
 ```python 
